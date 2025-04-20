@@ -23,6 +23,7 @@ class ModelName(str, Enum):
     # NOUS_HERMES_2 = "Nous-Hermes-2-Mistral-7B-DPO.Q4_0.gguf"
     GEMINI_PRO = "gemini-1.5-pro"
     GEMINI_FLASH = "gemini-1.5-flash"
+    GEMINI_2 = "gemini-2.0-flash-001"
     
     
     
@@ -37,8 +38,6 @@ class QueryInput(BaseModel):
     session_id: str = Field(default=None)
     model: ModelName = Field(default=ModelName.GEMINI_PRO)
     
-
-
 """
 QueryResponse: represents the response to a chat query
     - answer: the string response as generated answer

@@ -1,4 +1,7 @@
 # the file contains functions for interacting with FastAPI backend
+from io import BytesIO
+from streamlit.runtime.uploaded_file_manager import UploadedFile
+from typing import Union, Dict
 import requests
 import streamlit as st
 
@@ -38,26 +41,68 @@ def get_api_response(question, session_id, model):
         return None
     
 
-def upload_document(file):
-    # file: UploadedFile for streamlit
-    # The UploadedFile class is a subclass of BytesIO, 
-    # and therefore is "file-like". This means you can pass
-    # an instance of it anywhere a file is expected.
+def upload_document(input_data: Union[UploadedFile, Dict, BytesIO]):
+    """
+    Upload either a file or website URL to the backend.
+    
+    Args:
+        input_data: Either a Streamlit UploadedFile, BytesIO, or a dictionary containing website URL
+        
+    Returns:
+        dict: Response from the server or None if upload fails
+    """
     try:
-        files = {"file": (file.name, file, file.type)}
-        response = requests.post("http://localhost:8000/upload-doc", files=files)
+        if isinstance(input_data, dict) and 'url' in input_data:
+            # Handle website URL
+            headers = {
+                'accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+            
+            print("Sending website data to endpoint:")
+            print(f"Headers: {headers}")
+            print(f"Data: {input_data}")
+            
+            response = requests.post(
+                "http://localhost:8000/upload-website",
+                headers=headers,
+                json=input_data  # No wrapping needed
+            )
+        elif isinstance(input_data, (UploadedFile, BytesIO)):
+            # Handle file upload
+            if isinstance(input_data, UploadedFile):
+                file_name = input_data.name
+                file_type = input_data.type
+                file_content = input_data.getvalue()
+            else:
+                file_name = "uploaded_file"
+                file_type = "application/octet-stream"
+                file_content = input_data
+                
+            print(f"File upload: name={file_name}, type={file_type}")
+            files = {"file": (file_name, file_content, file_type)}
+            response = requests.post(
+                "http://localhost:8000/upload-file",
+                files=files
+            )
+        else:
+            raise ValueError(f"Invalid input_data type: {type(input_data)}")
+
         if response.status_code == 200:
             return response.json()
-        
         else:
-            st.error(f"Failed to upload file. Error: {response.status_code} - {response.text}")
+            error_msg = "Failed to upload website" if isinstance(input_data, dict) else "Failed to upload file"
+            st.error(f"{error_msg}. Error: {response.status_code} - {response.text}")
+            print(f"Response content: {response.text}")
             return None
-        
-    except Exception as e:
-        st.error(f"An error occurred while uploading the file: {str(e)}")
-        return None
-        
 
+    except Exception as e:
+        error_msg = "An error occurred while processing the website" if isinstance(input_data, dict) else "An error occurred while uploading the file"
+        st.error(f"{error_msg}: {str(e)}")
+        print(f"Exception details: {str(e)}")
+        return None
+    
+    
 def list_documents():
     try:
         response = requests.get("http://localhost:8000/list-docs")

@@ -1,9 +1,0 @@
-Rahasak is a highly scalable blockchain platform for enterprise applications that was developed with a collaboration of engineers and academic researchers. Rahasak is not only a blockchain platform, it's a framework to build and deploy highly scalable enterprise applications with microservices-based architecture. Following are the main components of the Rahasak.
-
- Aplos Service - Smart contract service implemented using functional programming and actor-based concurrency handling(with Scala and Akka).
- Storage Service - Apache Cassandra-based block, transaction, and asset storage. It supports sharding-based data replication.
- Lokka Service - Block creating service implemented with reactive stream-based architecture(with Scala and Akka streams)
- Rahasak-ML - Federated machine learning service. It allows to build and share ML models in a privacy-preserving manner.
- Apache Kafka - Supports sharding-based consensus and message broker functions.
- Rahasak-CA - Certificate authority that issues certificates for peers and clients in the Rahasak blockchain.
- Etcd Cluster - Service registry and configuration store.

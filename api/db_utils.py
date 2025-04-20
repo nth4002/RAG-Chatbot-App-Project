@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 
-DB_NAME = "rag_app.db"
+DB_NAME = "rag_chatbot_app.db"
 
 
 """
@@ -10,7 +10,7 @@ and setting the row factory to sqlite3.Row to return rows as dictionaries (for e
 """
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME)
-    # this configuration makes the rows returned by queries bahave like dictionaries,
+    # this configuration makes the rows returned by queries behave like dictionaries,
     # allowing access to columns by name
     conn.row_factory = sqlite3.Row
     return conn

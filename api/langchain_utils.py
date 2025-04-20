@@ -7,19 +7,21 @@ from typing import List
 from langchain_core.documents import Document
 import os
 import logging
-from dotenv import load_dotenv
-load_dotenv()
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv(), override=True)
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
-from chroma_utils import vectorstore
-retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
-
+from mongo_db_utils import vector_store
+# retriever = vector_store.as_retriever(search_kwargs={"k": 2})
+retriever = vector_store.as_retriever(
+    search_type="similarity_score_threshold",
+    search_kwargs={"k": 2, "score_threshold": 0.2},
+)
 output_parser = StrOutputParser()
 
-# logging.basicConfig(filename="app.log", level=logging.INFO)
+logging.basicConfig(filename="rag_chatbot_app.log", level=logging.INFO)
 
-
-# llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", google_api_key=GOOGLE_API_KEY)
 
 # Set up prompts and chains
 contextualize_q_system_prompt = (
@@ -30,61 +32,36 @@ contextualize_q_system_prompt = (
     "just reformulate it if needed and otherwise return it as is."
 )
 
-contextualize_q_prompt = ChatPromptTemplate.from_messages([
+contextualize_q_prompt = ChatPromptTemplate([
     ("system", contextualize_q_system_prompt),
     MessagesPlaceholder("chat_history"),
     ("human", "{input}"),
 ])
 
-# history_aware_retriever = create_history_aware_retriever(
-#     llm, retriever, contextualize_q_prompt
-# )
+system_prompt = (
+    "You are an assistant for question-answering tasks. "
+    "Use the following pieces of retrieved context to answer "
+    "the question. If you don't know the answer, say that you "
+    "don't know. Use three sentences maximum and keep the "
+    "answer concise."
+    "\n\n"
+    "{context}"
+)
 
-# qa_prompt = ChatPromptTemplate.from_messages([
-#     ("ai", "You are a helpful AI assistant. Use the following context to answer the user's question."),
-#     ("ai", "Context: {context}"),
-#     MessagesPlaceholder(variable_name="chat_history"),
-#     ("human", "{input}")
-# ])
-
-# question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-# rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-
-# # 'chat_history': list[typing.Annotated[typing.Union[typing.Annotated[langchain_core.messages.ai.AIMessage, Tag(tag='ai')], typing.Annotated[langchain_core.messages.human.HumanMessage, Tag(tag='human')]
-# from langchain_core.messages import HumanMessage, AIMessage
-
-# chat_history = []
-# question1 = "When was GreenGrow Innovations founded?"
-# answer1 = rag_chain.invoke({"input": question1, "chat_history": chat_history})['answer']
-# chat_history.extend([
-#     HumanMessage(content=question1),
-#     AIMessage(content=answer1)
-# ])
-
-# print(f"Human: {question1}")
-# print(f"AI: {answer1}\n")
-
-# question2 = "Where is it headquartered?"
-# answer2 = rag_chain.invoke({"input": question2, "chat_history": chat_history})['answer']
-# chat_history.extend([
-#     HumanMessage(content=question2),
-#     AIMessage(content=answer2)
-# ])
-
-# print(f"Human: {question2}")
-# print(f"AI: {answer2}")
-qa_prompt = ChatPromptTemplate.from_messages([
-    ("ai", "You are a helpful AI assistant. Use the following context to answer the user's question."),
-    ("ai", "Context: {context}"),
-    MessagesPlaceholder(variable_name="chat_history"),
-    ("human", "{input}")
-])
+qa_prompt = ChatPromptTemplate(
+    [
+        ("system", system_prompt),
+        MessagesPlaceholder("chat_history"),
+        ("human", "{input}"),
+    ]
+)
 
 
 
-def get_rag_chain(model="gemini-1.5-flash"):
+def get_rag_chain(model="gemini-2.0-flash-001"):
     llm = ChatGoogleGenerativeAI(model=model, google_api_key=GOOGLE_API_KEY)
     history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)    
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+   
     return rag_chain
