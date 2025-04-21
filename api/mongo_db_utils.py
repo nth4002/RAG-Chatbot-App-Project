@@ -14,7 +14,11 @@ from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv, find_dotenv
 from langchain_mongodb import MongoDBAtlasVectorSearch
-from pymongo import MongoClient
+# from pymongo import MongoClient
+from pymongo.mongo_client import MongoClient
+from pymongo.operations import SearchIndexModel
+
+from fastapi import HTTPException
 
 import os
 import logging
@@ -58,7 +62,99 @@ vector_store = MongoDBAtlasVectorSearch(
     relevance_score_fn="cosine"
 )
 
+def initialize_vector_store():
+    """Initialize the MongoDB collection and verify the vector search index."""
+    try:
+        # Verify MongoDB connection
+        client.server_info()  # Raises an exception if connection fails
+        logging.info("MongoDB connection established successfully")
 
+        # Check if collection exists
+        if COLLECTION_NAME not in client[DB_NAME].list_collection_names():
+            client[DB_NAME].create_collection(COLLECTION_NAME)
+            logging.info(f"Created collection {COLLECTION_NAME}")
+        else:
+            logging.info(f"Collection {COLLECTION_NAME} already exists")
+
+
+        # Note: Vector search index must be created in MongoDB Atlas UI or via API
+        logging.info(f"Ensure vector search index '{ATLAS_VECTOR_SEARCH_INDEX_NAME}' is configured in MongoDB Atlas for collection {COLLECTION_NAME}")
+        # vector_store.create_vector_search_index(
+        #     dimensions=768,
+        #     filters=[{"type":"filter", "path": "source"}],
+        #     update=True
+        # )
+        # Test vector store by adding a dummy document
+        dummy_doc = Document(page_content="Test document", metadata={"file_id": 0})
+        vector_store.add_documents([dummy_doc])
+        logging.info("Added test document to vector store")
+
+        # Log the inserted document to inspect its structure
+        inserted_doc = vector_store._collection.find_one({"file_id": 0})
+        if inserted_doc:
+            logging.info(f"Inserted test document: {inserted_doc.get('file_id')}")
+        else:
+            logging.error("Test document not found after insertion")
+
+        # Delete the test document
+        result = vector_store._collection.delete_one({"file_id": 0})
+        if result.deleted_count > 0:
+            logging.info("Successfully deleted test document")
+        else:
+            logging.warning("No test document was deleted; check document structure or query")
+
+        # Verify deletion
+        remaining_doc = vector_store._collection.find_one({".file_id": 0})
+        if remaining_doc:
+            logging.error(f"Test document still exists after deletion attempt: {remaining_doc}")
+        else:
+            logging.info("Confirmed test document was deleted")
+
+    except Exception as e:
+        logging.error(f"Failed to initialize vector store: {str(e)}")
+        raise
+
+def create_index():
+    # Connect to your Atlas deployment
+    # client = MongoClient(
+    #     MONGODB_ATLAS_CLUSTER_URI
+    # )
+    # DB_NAME = "RAG-Chatbot-Cluster"
+    # COLLECTION_NAME = "RAG-Chatbot-Collection-Test"
+    # ATLAS_VECTOR_SEARCH_INDEX_NAME = "RAG-Chatbot-Index-Test"
+
+    # collection = client[DB_NAME][COLLECTION_NAME]
+
+    # Create your index model, then create the search index
+    search_index_model = SearchIndexModel(
+                definition={
+                    "mappings": {
+                        "dynamic": True,
+                        "fields": {
+                            "embedding": {  # Correct structure: field name as key
+                                "type": "knnVector",
+                                "dimensions": 768,
+                                "similarity": "cosine"
+                            }
+                        }
+                    }
+                },
+                name=ATLAS_VECTOR_SEARCH_INDEX_NAME,
+            )
+    
+    result = MONGODB_COLLECTION.create_search_index(model=search_index_model)
+    logging.info(f"Succesfully creating Atlas Search Index: {result}")
+
+
+def delete_collection():
+    """Delete the entire MongoDB collection."""
+    try:
+        client[DB_NAME].drop_collection(COLLECTION_NAME)
+        logging.info(f"Successfully deleted collection {COLLECTION_NAME}")
+        return True
+    except Exception as e:
+        logging.error(f"Error deleting collection {COLLECTION_NAME}: {str(e)}")
+        return False
 """
 Document Loading and Splitting
 This functions handles loading different types of documents (pdf, docx, html)
@@ -138,11 +234,11 @@ def delete_doc_from_mongodb(file_id: int) -> bool:
     try:
         # get the document with the specified file_id
         # meaning all chunks of the document
-        docs = vector_store.get(where={"file_id": file_id})
-        print(f"Found {len(docs['ids'])} document chunks for file_id {file_id}")
+        docs = vector_store._collection.find({"file_id": file_id})
+        print(f"Found {len(docs.to_list())} document chunks for file_id {file_id}")
         
         # delete the document
-        vector_store._collection.delete(where={"file_id": file_id})
+        vector_store._collection.delete_many({"file_id": file_id})
         # vectorstore.delete(ids=docs['ids'])
         print(f"Succesfully deleted document with file_id {file_id}")
         

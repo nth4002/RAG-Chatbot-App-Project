@@ -14,9 +14,11 @@ GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 
 from mongo_db_utils import vector_store
 # retriever = vector_store.as_retriever(search_kwargs={"k": 2})
+
+
 retriever = vector_store.as_retriever(
     search_type="similarity_score_threshold",
-    search_kwargs={"k": 2, "score_threshold": 0.2},
+    search_kwargs={"k": 12, "score_threshold": 0.3},
 )
 output_parser = StrOutputParser()
 
@@ -24,12 +26,20 @@ logging.basicConfig(filename="rag_chatbot_app.log", level=logging.INFO)
 
 
 # Set up prompts and chains
+# contextualize_q_system_prompt = (
+#     "Given a chat history and the latest user question "
+#     "which might reference context in the chat history, "
+#     "formulate a standalone question which can be understood "
+#     "without the chat history. Do NOT answer the question, "
+#     "just reformulate it if needed and otherwise return it as is."
+# )
+
 contextualize_q_system_prompt = (
-    "Given a chat history and the latest user question "
-    "which might reference context in the chat history, "
-    "formulate a standalone question which can be understood "
-    "without the chat history. Do NOT answer the question, "
-    "just reformulate it if needed and otherwise return it as is."
+    "Với lịch sử trò chuyện và câu hỏi mới nhất của người dùng, "
+    "câu hỏi có thể tham chiếu đến ngữ cảnh trong lịch sử trò chuyện, "
+    "hãy xây dựng một câu hỏi độc lập có thể hiểu được"
+    "mà không cần lịch sử trò chuyện. KHÔNG trả lời câu hỏi, "
+    "chỉ cần xây dựng lại câu hỏi nếu cần và nếu không thì giữ nguyên câu hỏi như hiện tại."
 )
 
 contextualize_q_prompt = ChatPromptTemplate([
@@ -38,13 +48,22 @@ contextualize_q_prompt = ChatPromptTemplate([
     ("human", "{input}"),
 ])
 
+# system_prompt = (
+#     "You are an assistant for question-answering tasks. "
+#     "Use the following pieces of retrieved context to answer "
+#     "the question. If you don't know the answer, say that you "
+#     "don't know. Use three sentences maximum and keep the "
+#     "answer concise."
+#     "\n\n"
+#     "{context}"
+# )
+
 system_prompt = (
-    "You are an assistant for question-answering tasks. "
-    "Use the following pieces of retrieved context to answer "
-    "the question. If you don't know the answer, say that you "
-    "don't know. Use three sentences maximum and keep the "
-    "answer concise."
-    "\n\n"
+    "Bạn là trợ lý cho các nhiệm vụ trả lời câu hỏi. "
+    "Sử dụng các phần ngữ cảnh sau đây để trả lời "
+    "câu hỏi. Nếu bạn không biết câu trả lời, hãy nói rằng bạn "
+    "không biết. Sử dụng tối đa ba câu và giữ cho câu trả lời ngắn gọn."
+     "\n\n"
     "{context}"
 )
 
@@ -63,5 +82,7 @@ def get_rag_chain(model="gemini-2.0-flash-001"):
     history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-   
+    # Modify the question_answer_chain to return both answer and source documents
+    
+
     return rag_chain

@@ -11,7 +11,13 @@ from db_utils import (
     create_application_logs,
     create_document_store
 )
-from mongo_db_utils import index_document_to_mongodb, delete_doc_from_mongodb
+from mongo_db_utils import (
+    index_document_to_mongodb,
+    delete_doc_from_mongodb, 
+    initialize_vector_store, 
+    delete_collection,
+    create_index
+)
 import os
 import uuid
 import logging
@@ -21,19 +27,26 @@ from typing import Optional, Dict, Union
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+from mongo_db_utils import vector_store
 
 logging.basicConfig(filename='rag_chatbot_app.log', level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database tables when the FastAPI server starts"""
-    logging.info("Initializing database tables...")
+    """Initialize database tables and MongoDB vector store when the FastAPI server starts"""
+    logging.info("Initializing database tables and vector store...")
     create_application_logs()
     create_document_store()
-    logging.info("Database tables initialized successfully")
+    initialize_vector_store()
+    create_index()
+    logging.info("Database tables and vector store initialized successfully")
     yield
-    # Cleanup code (if any) goes here
-
+    # Cleanup: Delete the MongoDB collection on shutdown
+    logging.info("Shutting down server, deleting MongoDB collection...")
+    if delete_collection():
+        logging.info("MongoDB collection deleted successfully during shutdown")
+    else:
+        logging.error("Failed to delete MongoDB collection during shutdown")    
 app = FastAPI(lifespan=lifespan)
 
 def scrape_website(url: str) -> str:
@@ -75,13 +88,25 @@ def chat(query_input: QueryInput):
     
     rag_chain = get_rag_chain(query_input.model.value)
     try:
-        answer = rag_chain.invoke({
+        result = rag_chain.invoke({
             "input": query_input.question,
             "chat_history": chat_history
-        })['answer']
+        })
+        
+        answer = result['answer']
+        # context = result['context']
+        context = vector_store.similarity_search(query_input.question, k=2)
+        
+        # Log the retrieved documents
+        if context:
+            logging.info(f"Retrieved documents: {context}")
+            
+        else:
+            logging.warning("No relevant documents were retrieved for this query")
+            
     except Exception as e:
         logging.error(f"Error invoking RAG chain: {str(e)}")
-        raise
+        raise HTTPException(status_code=500, detail=str(e))
     
     insert_application_logs(session_id, query_input.question, answer, query_input.model.value)
     logging.info(f"Session ID: {session_id}, AI Response: {answer}")
