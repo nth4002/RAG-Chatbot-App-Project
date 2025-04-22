@@ -1,3 +1,17 @@
-.env
+# Python virtual environment
 venv/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# Byte-compiled files
+__pycache__/
+*.pyc
+
+# Ignore specific file in subfolder
+# api/new_db_utils.py
+
 

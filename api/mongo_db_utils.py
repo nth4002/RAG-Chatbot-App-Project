@@ -33,7 +33,7 @@ load_dotenv(find_dotenv(), override=True)
 logging.basicConfig(filename="rag_chatbot_app.log", level=logging.INFO)
 
 
-local_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# local_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 text_splitters = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
 
 gemini_embeddings = GoogleGenerativeAIEmbeddings(
@@ -163,6 +163,7 @@ and splitting them into smaller chunks.
 
 def load_and_split_html(base_url: str) -> List[Document]:
     # base_url = "https://apidog.com/vi/blog/rag-deepseek-r1-ollama-vi/"  # Replace with your target website
+    base_url = base_url.strip()
     scraper = WebScraper(base_url)
     # print("step 1")
     # Scrape the website
@@ -181,8 +182,8 @@ def load_and_split_html(base_url: str) -> List[Document]:
         )
 
     # Print results
-    print(f"Total pages scraped: {len(scraped_content)}")
-    print(f"Total chunks created: {len(processed_chunks)}")
+    logging.info(f"Total pages scraped: {len(scraped_content)}")
+    logging.info(f"Total chunks created: {len(processed_chunks)}")
     
     # Example of accessing the first chunk
     return documents
@@ -195,7 +196,7 @@ def load_and_split_document(file_path: str) -> List[Document]:
     elif file_path.endswith('.docx'):
         print(f"Processing the Docx file!")
         loader = Docx2txtLoader(file_path)
-    elif file_path.endswith('.html'):
+    elif file_path.endswith('.html') or file_path.startswith("http"):
         print(f"Processing the html file!")
         return load_and_split_html(file_path)
     else:

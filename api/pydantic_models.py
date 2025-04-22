@@ -21,7 +21,7 @@ class ModelName(str, Enum):
     # LLAMA_3B = "Llama-3.2-3B-Instruct-Q4_0.gguf"
     # LLAMA_13B = "llama-2-13b-chat.Q4_0.gguf"
     # NOUS_HERMES_2 = "Nous-Hermes-2-Mistral-7B-DPO.Q4_0.gguf"
-    GEMINI_PRO = "gemini-1.5-pro"
+    # GEMINI_PRO = "gemini-1.5-pro"
     GEMINI_FLASH = "gemini-1.5-flash"
     GEMINI_2 = "gemini-2.0-flash-001"
     
@@ -36,7 +36,7 @@ QueryInput:  represents the input for a chat query
 class QueryInput(BaseModel):
     question: str
     session_id: str = Field(default=None)
-    model: ModelName = Field(default=ModelName.GEMINI_PRO)
+    model: ModelName = Field(default=ModelName.GEMINI_FLASH)
     
 """
 QueryResponse: represents the response to a chat query
@@ -58,7 +58,7 @@ DocumentINfo: represents metadata about an indexed document
     - upload_timestamp: the timestamp when the file was uploaded and indexed
 """
 class DocumentInfo(BaseModel):
-    id: int
+    id: str
     filename: str
     upload_timestamp: datetime
     
@@ -69,5 +69,5 @@ DeleteFileRequest: represents the request to delete an indexed document
     - file id: the id of the document that is requested to be deleted
 """ 
 class DeleteFileRequest(BaseModel):
-    file_id: int
+    file_id: str
     

@@ -1,0 +1,533 @@
+/* src/components/Sidebar.css */
+.sidebar {
+  width: 300px;
+  background-color: #e9ecef;
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  /* Allow sidebar scrolling */
+  height: 100vh;
+  box-sizing: border-box;
+  /* Include padding in height */
+}
+
+.sidebar-section {
+  margin-bottom: 25px;
+  border-bottom: 1px solid #ced4da;
+  padding-bottom: 15px;
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+
+.sidebar h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #495057;
+  font-size: 1.1em;
+}
+
+.sidebar select,
+.sidebar input[type="text"],
+.sidebar input[type="file"] {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-sizing: border-box;
+  /* Include padding in width */
+}
+
+.sidebar button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 5px;
+  font-size: 0.9em;
+}
+
+.sidebar button:hover {
+  background-color: #0056b3;
+}
+
+.sidebar button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.tabs {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.tabs button {
+  flex: 1;
+  padding: 8px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background-color: #f8f9fa;
+  margin: 0;
+  border-radius: 0;
+  width: auto;
+  /* Override sidebar button width */
+}
+
+.tabs button:first-child {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.tabs button:last-child {
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  border-left: none;
+}
+
+.tabs button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.tabs button:not(.active) {
+  background-color: #cbcfd4;
+  color: black;
+  border-color: #cbcfd4;
+}
+
+.tab-content {
+  padding-top: 10px;
+}
+
+.document-list {
+  max-height: 250px;
+  /* Limit height and allow scroll */
+  overflow-y: auto;
+  margin-top: 10px;
+  padding-right: 5px;
+  /* Space for scrollbar */
+}
+
+.document-item {
+  background-color: #fff;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  font-size: 0.9em;
+}
+
+.document-item p {
+  margin: 3px 0;
+}
+
+.document-item strong {
+  word-break: break-all;
+  /* Prevent long filenames from overflowing */
+}
+
+.doc-meta {
+  font-size: 0.8em;
+  color: #6c757d;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.9em;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
+
+.success-message {
+  color: #28a745;
+  font-size: 0.9em;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+}
+
+.loading-message {
+  font-style: italic;
+  color: #6c757d;
+  margin-top: 10px;
+}
+
+/* Responsive Sidebar */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    /* Allow height to adjust */
+    max-height: 50vh;
+    /* Limit height on small screens */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+  .document-list {
+    max-height: 150px;
+  }
+}
+
+/* src/components/Sidebar.css */
+
+/* Sidebar container base styles */
+.sidebar {
+  /* Width is now controlled by classes */
+  min-width: 0;
+  height: 100vh;
+  background-color: #e9ecef;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  position: relative;
+  transition: width 0.3s ease-in-out, padding 0.3s ease-in-out;
+  /* Smooth transition */
+  overflow: hidden;
+  /* Hide content when closed */
+  flex-shrink: 0;
+  /* Prevent sidebar from shrinking */
+}
+
+/* Styles when the sidebar is OPEN */
+.sidebar.open {
+  width: 300px;
+  /* Define your desired fixed open width */
+  padding: 20px;
+  border-right: 1px solid #ced4da;
+  /* Visual edge */
+  /* Allow vertical scrolling if content overflows */
+  overflow-y: auto;
+}
+
+/* Styles when the sidebar is CLOSED */
+.sidebar.closed {
+  width: 0 !important;
+  /* Ensure width is 0 */
+  padding: 0;
+  border-right: none;
+  box-shadow: none;
+  overflow: hidden;
+  /* Ensure no scrollbars appear */
+}
+
+/* Content sections styling */
+.sidebar-section {
+  margin-bottom: 25px;
+  border-bottom: 1px solid #ced4da;
+  padding-bottom: 15px;
+  flex-shrink: 0;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out 0.1s;
+  /* Fade content slightly after width transition */
+}
+
+.sidebar.closed .sidebar-section {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s ease-in-out, visibility 0s linear 0.2s;
+  /* Hide faster */
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.sidebar h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #495057;
+  font-size: 1.1em;
+  white-space: nowrap;
+}
+
+.sidebar select,
+.sidebar input[type="text"],
+.sidebar input[type="file"] {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.sidebar button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 5px;
+  font-size: 0.9em;
+  flex-shrink: 0;
+}
+
+.sidebar button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.sidebar button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Tabs styling */
+.tabs {
+  display: flex;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.tabs button {
+  flex: 1;
+  padding: 8px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background-color: #f8f9fa;
+  margin: 0;
+  border-radius: 0;
+  width: auto;
+}
+
+.tabs button:first-child {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.tabs button:last-child {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-left: none;
+}
+
+.tabs button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.tabs button:not(.active):hover {
+  background-color: #dde1e6;
+}
+
+
+.tab-content {
+  padding-top: 10px;
+}
+
+/* Document list styling */
+.document-list {
+  /* Adjust max-height based on content and desired scroll behavior */
+  max-height: 250px;
+  overflow-y: auto;
+  margin-top: 10px;
+  padding-right: 5px;
+  /* Space for scrollbar */
+}
+
+.document-item {
+  background-color: #fff;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  font-size: 0.9em;
+}
+
+.document-item p {
+  margin: 3px 0;
+  overflow: hidden;
+  /* Prevent text overflow */
+  text-overflow: ellipsis;
+  /* Add ellipsis for long text */
+  white-space: nowrap;
+  /* Keep text on one line */
+}
+
+
+.doc-meta {
+  font-size: 0.8em;
+  color: #6c757d;
+}
+
+/* Message styling */
+.error-message,
+.success-message {
+  font-size: 0.9em;
+  margin-top: 10px;
+  padding: 8px;
+  border-radius: 4px;
+  word-wrap: break-word;
+  /* Allow long messages to wrap */
+}
+
+.error-message {
+  color: #721c24;
+  /* Darker red */
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+}
+
+.success-message {
+  color: #155724;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+
+.loading-message {
+  font-style: italic;
+  color: #6c757d;
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* --- Styles ONLY for Toggling --- */
+
+/* --- REMOVED .resize-handle styles --- */
+
+/* Toggle Button Styling (Same as before) */
+.sidebar-toggle-button {
+  position: absolute;
+  top: 15px;
+  /* Adjust vertical position */
+  width: 32px;
+  /* Slightly larger */
+  height: 32px;
+  padding: 0;
+  /* Remove padding if using SVG */
+  margin: 0;
+  border-radius: 50%;
+  display: flex;
+  /* Center SVG */
+  align-items: center;
+  /* Center SVG */
+  justify-content: center;
+  /* Center SVG */
+  font-size: 1.2em;
+  z-index: 15;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  border: 1px solid #adb5bd;
+  cursor: pointer;
+  background-color: #f8f9fa;
+  /* Default background */
+  color: #495057;
+  /* Default icon color */
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.3s ease;
+}
+
+.sidebar-toggle-button svg {
+  width: 1em;
+  /* Control icon size via font-size */
+  height: 1em;
+}
+
+.sidebar-toggle-button:hover {
+  background-color: #e9ecef;
+  transform: scale(1.1);
+  /* Keep hover effect */
+}
+
+.sidebar-toggle-button:active {
+  background-color: #dee2e6;
+}
+
+
+.sidebar-toggle-button.open {
+  /* Position inside the sidebar when open */
+  right: 15px;
+  /* Changed from -16px */
+  top: 15px;
+  /* Keep consistent vertical position */
+  /* Optional: Add slight rotation for visual cue */
+  /* transform: translateX(-50%); */
+}
+
+.sidebar-toggle-button.open:hover {
+  transform: scale(1.1);
+}
+
+
+.sidebar-toggle-button.closed {
+  /* Position fixed on the left when sidebar is closed */
+  left: 10px;
+  top: 15px;
+  /* Match vertical position */
+  position: fixed;
+  /* Keep it visible */
+  z-index: 100;
+  background-color: #007bff;
+  /* Stand out when closed */
+  color: white;
+  border-color: #0056b3;
+}
+
+.sidebar-toggle-button.closed:hover {
+  background-color: #0056b3;
+  /* transform: scale(1.1); */
+}
+
+.sidebar.open>.sidebar-section:first-of-type {
+  margin-top: 50px;
+  /* Adjust space as needed (button height + desired gap) */
+}
+
+/* Responsive Sidebar (Simplified) */
+@media (max-width: 768px) {
+
+  /* Make sidebar overlay on mobile */
+  .sidebar.open {
+    width: 85vw !important;
+    /* Take more width */
+    max-width: 320px;
+    /* Limit max width */
+    position: fixed;
+    /* Or absolute if container allows */
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    /* Ensure it's above content */
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .sidebar.closed {
+    width: 0 !important;
+    padding: 0;
+    /* Ensure visibility: hidden doesn't prevent fixed button */
+  }
+
+  .document-list {
+    max-height: 200px;
+    /* Adjust scroll height */
+  }
+
+  /* Adjust toggle button position for mobile overlay */
+  .sidebar-toggle-button.open {
+    right: 10px;
+    /* Fully inside */
+    top: 10px;
+  }
+
+  .sidebar-toggle-button.closed {
+    left: 10px;
+    top: 10px;
+  }
+}

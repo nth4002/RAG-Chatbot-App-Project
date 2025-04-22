@@ -2,14 +2,13 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Body
 from contextlib import asynccontextmanager
 from pydantic_models import QueryInput, QueryResponse, DocumentInfo, DeleteFileRequest
 from langchain_utils import get_rag_chain
-from db_utils import (
-    insert_application_logs, 
-    get_chat_history, 
-    get_all_documents, 
-    insert_document_record, 
+from new_db_util import (
+    insert_document_records,
+    insert_application_logs,
+    get_all_documents,
+    get_chat_history,
     delete_document_record,
-    create_application_logs,
-    create_document_store
+    delete_logs_and_documents_collections
 )
 from mongo_db_utils import (
     index_document_to_mongodb,
@@ -29,29 +28,53 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from mongo_db_utils import vector_store
 
+# import CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
+
+# setup logging
 logging.basicConfig(filename='rag_chatbot_app.log', level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database tables and MongoDB vector store when the FastAPI server starts"""
     logging.info("Initializing database tables and vector store...")
-    create_application_logs()
-    create_document_store()
     initialize_vector_store()
     create_index()
     logging.info("Database tables and vector store initialized successfully")
     yield
     # Cleanup: Delete the MongoDB collection on shutdown
-    logging.info("Shutting down server, deleting MongoDB collection...")
+    logging.info("Shutting down server, deleting MongoDB vector store collection...")
     if delete_collection():
-        logging.info("MongoDB collection deleted successfully during shutdown")
+        logging.info("MongoDB vector store collection deleted successfully during shutdown")
     else:
-        logging.error("Failed to delete MongoDB collection during shutdown")    
+        logging.error("Failed to delete MongoDB store collection during shutdown")    
+    print("App shutdown: Deleting MongoDB collections...")
+    result = delete_logs_and_documents_collections()
+    if result:
+        logging.info(f"Chatbot database deleted successfully during shutdown")
+    else:
+        logging.error("Failed to delete Chatbot database during shutdown")
+    # logging.info(f"Cleanup done: {result}")
+
 app = FastAPI(lifespan=lifespan)
+
+
+# configure and add the cors middleware
+origins = [
+    'http://localhost:3000'
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True, # allow cookies and authorization headers if needed
+    allow_methods=["*"], # allow all standard method (GET, POST, DELETE,PUT, etc)
+    allow_headers=["*"] # allow all  headers (including content-type, authorization, etc.)
+)
 
 def scrape_website(url: str) -> str:
     """Scrape website content and return cleaned text."""
     try:
+        url = url.strip()
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         
@@ -120,7 +143,7 @@ async def upload_file(
     print(f"Processing file: {file.filename}")
 
     try:
-        allowed_extensions = [".pdf", "'.docx"]
+        allowed_extensions = [".pdf", ".docx"]
         file_extension = os.path.splitext(file.filename)[1].lower() # tuple of(root, ext)
         if file_extension not in allowed_extensions:
             raise HTTPException(
@@ -132,7 +155,7 @@ async def upload_file(
         try:
             with open(tmp_file_path, 'wb') as buffer:
                 shutil.copyfileobj(file.file, buffer)
-            file_id = insert_document_record(file.filename)
+            file_id = insert_document_records(file.filename)
             success = index_document_to_mongodb(tmp_file_path, file_id)
             if success:
                 logging.info(f"File {file.filename} indexed successfully, file_id = {file_id}")
@@ -175,7 +198,7 @@ async def upload_website(website: Dict = Body(...)):
         try:
             with open(tmp_file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            file_id = insert_document_record(filename)
+            file_id = insert_document_records(filename)
             success = index_document_to_mongodb(url, file_id)
 
             if success:
@@ -194,8 +217,10 @@ async def upload_website(website: Dict = Body(...)):
     except Exception as e:
         logging.error(f"ERROR in upload website: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    
 @app.get("/list-docs", response_model=list[DocumentInfo])
 def list_documents():
+    logging.error("ERROR here!")
     return get_all_documents()
 
 @app.post("/delete-doc")

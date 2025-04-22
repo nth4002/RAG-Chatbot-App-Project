@@ -1,0 +1,247 @@
+/* src/components/ChatInterface.css */
+
+/* --- Existing Styles --- */
+.chat-interface {
+  /* ... */
+  display: flex;
+  flex-direction: column;
+}
+
+.message-list {
+  /* ... */
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  /* Space between messages */
+}
+
+/* --- Message Layout Modifications --- */
+.message {
+  display: flex;
+  /* Use flexbox for icon + content layout */
+  align-items: flex-start;
+  /* Align icon with top of text bubble */
+  max-width: 85%;
+  /* Max width for the whole message row */
+  gap: 10px;
+  /* Space between icon container and content container */
+  word-wrap: break-word;
+}
+
+.message.user {
+  align-self: flex-end;
+  /* Align entire message row to the right */
+  flex-direction: row-reverse;
+  /* Put icon container on the right */
+}
+
+.message.assistant {
+  align-self: flex-start;
+  /* Align entire message row to the left */
+  flex-direction: row;
+  /* Default direction (icon container on left) */
+}
+
+/* NEW: Icon container */
+.message-icon-container {
+  flex-shrink: 0;
+  /* Prevent icon container from shrinking */
+  /* Optional: Add padding/margin if needed around icon */
+  padding-top: 2px;
+  /* Small adjustment to align icon better */
+}
+
+/* NEW: Icon itself */
+.message-icon {
+  width: 28px;
+  /* Adjust icon size */
+  height: 28px;
+  border-radius: 50%;
+  /* Make icons circular */
+  padding: 4px;
+  /* Padding inside the circle */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.user-icon {
+  background-color: #007bff;
+  /* User icon background */
+  color: #ffffff;
+  /* User icon color (if using fill="currentColor") */
+}
+
+.assistant-icon {
+  background-color: #6c757d;
+  /* Assistant icon background */
+  color: #ffffff;
+  /* Assistant icon color */
+}
+
+/* NEW: Message content container */
+.message-content-container {
+  /* This container holds the bubble */
+  /* It will naturally take the remaining space in the flex row */
+}
+
+/* Existing message content bubble */
+.message-content {
+  padding: 10px 15px;
+  border-radius: 15px;
+  line-height: 1.4;
+  /* Background colors are now specific to the role */
+  /* max-width: 100%; /* Allow bubble to take full width of its container */
+}
+
+.message.user .message-content {
+  background-color: #007bff;
+  color: white;
+  border-bottom-right-radius: 5px;
+  /* Keep the bubble styling */
+}
+
+.message.assistant .message-content {
+  background-color: #f1f1f1;
+  color: #333;
+  border-bottom-left-radius: 5px;
+  /* Keep the bubble styling */
+}
+
+
+/* --- Other existing styles --- */
+
+.input-form {
+  display: flex;
+  align-items: center;
+  /* Vertically align input and button */
+  padding: 12px 15px;
+  /* Adjust padding around the form */
+  border-top: 1px solid #e0e0e0;
+  /* Lighter separator */
+  background-color: #f8f9fa;
+  /* Light background for the bar */
+  gap: 10px;
+  /* Space between input and button */
+}
+
+.input-form input[type="text"] {
+  flex-grow: 1;
+  /* Allow input to take available space */
+  padding: 12px 20px;
+  /* Comfortable padding inside the input */
+  font-size: 1rem;
+  /* Standard font size */
+  color: #202124;
+  /* Dark grey text */
+  background-color: #f1f3f4;
+  /* Subtle light grey background (Google style) */
+  border: none;
+  /* Remove default border */
+  border-radius: 24px;
+  /* Highly rounded corners for pill shape */
+  outline: none;
+  /* Remove default browser focus outline */
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  /* Smooth transitions */
+  line-height: 1.5;
+  /* Ensure text is centered vertically */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  /* Subtle inner shadow */
+}
+
+.input-form input[type="text"]::placeholder {
+  color: #5f6368;
+  /* Google placeholder color */
+  opacity: 1;
+  /* Ensure placeholder is visible */
+}
+
+/* Focus state for the input */
+.input-form input[type="text"]:focus {
+  background-color: #ffffff;
+  /* White background on focus */
+  /* Subtle blue ring shadow (common focus indicator) */
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.3);
+  /* Adjusted Google Blue focus ring */
+}
+
+/* Styling for the Send button */
+.input-form button {
+  flex-shrink: 0;
+  /* Prevent button from shrinking */
+  width: 44px;
+  /* Square-ish size for circular button */
+  height: 44px;
+  padding: 0;
+  /* Remove default padding */
+  border: none;
+  border-radius: 50%;
+  /* Make it circular */
+  background-color: transparent;
+  /* Default transparent background */
+  color: #1a73e8;
+  /* Google Blue for the icon/text */
+  cursor: pointer;
+  display: flex;
+  /* Needed to center content */
+  align-items: center;
+  /* Center content vertically */
+  justify-content: center;
+  /* Center content horizontally */
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+  /* Slightly bolder text */
+}
+
+/* Add a subtle background on hover */
+.input-form button:hover:not(:disabled) {
+  background-color: rgba(26, 115, 232, 0.1);
+  /* Very light blue background */
+}
+
+/* Style for when the button is disabled */
+.input-form button:disabled {
+  background-color: transparent;
+  /* Keep transparent */
+  color: #bdc1c6;
+  /* Light grey color for disabled state */
+  cursor: not-allowed;
+}
+
+.error-message.chat-error {
+  /* ... */
+}
+
+.loading-dots span {
+  /* ... */
+}
+
+@keyframes blink {
+  /* ... */
+}
+
+.response-details {
+  /* ... */
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .message {
+    max-width: 90%;
+    /* Adjust max width for mobile */
+  }
+
+  .message-icon {
+    width: 24px;
+    /* Slightly smaller icons on mobile */
+    height: 24px;
+    padding: 3px;
+  }
+
+  .message {
+    gap: 8px;
+    /* Reduce gap */
+  }
+}

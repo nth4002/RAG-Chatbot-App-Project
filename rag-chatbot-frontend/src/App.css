@@ -1,0 +1,113 @@
+/* src/App.css */
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background-color: #f4f4f9;
+  color: #333;
+  overflow: hidden;
+  /* Prevent scrolling on the body itself */
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* NEW: Wrapper for Header and ChatInterface */
+.main-content {
+  flex-grow: 1;
+  /* Take remaining horizontal space */
+  display: flex;
+  flex-direction: column;
+  /* Stack header above chat */
+  overflow: hidden;
+  /* Prevent this container from overflowing */
+  position: relative;
+  /* Needed for potential absolute positioning inside */
+}
+
+/* NEW: Header Styles */
+.app-header {
+  padding: 10px 20px;
+  /* Adjust padding as needed */
+  background-color: #ffffff;
+  /* Or match chat interface background */
+  border-bottom: 1px solid #e0e0e0;
+  /* Separator line */
+  flex-shrink: 0;
+  /* Prevent header from shrinking */
+  z-index: 10;
+  /* Ensure it's above chat, but below sidebar toggle */
+  transition: all 0.3s ease-in-out;
+  /* Smooth transition for potential future effects */
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.4em;
+  /* Adjust size */
+  color: #333;
+}
+
+/* Header style when sidebar is OPEN (default flow) */
+.app-header.sidebar-open {
+  /* No special positioning needed, flows naturally */
+}
+
+/* Header style when sidebar is CLOSED (fixed top-left) */
+.app-header.sidebar-closed {
+  position: fixed;
+  /* Position relative to viewport */
+  top: 10px;
+  /* Match sidebar closed toggle button's top padding */
+  /* Adjust left based on the closed toggle button's width + margin */
+  /* Toggle button: left 10px + width 32px + desired gap 10px = ~52px */
+  left: 55px;
+  border-radius: 6px;
+  /* Optional rounded corners */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  /* Optional shadow */
+  border-bottom: none;
+  /* Remove border when fixed */
+  z-index: 99;
+  /* Below closed toggle button (which is 100) */
+}
+
+/* Ensure ChatInterface grows correctly within main-content */
+.chat-interface {
+  flex-grow: 1;
+  /* Allow internal scrolling */
+  overflow: hidden;
+  /* Changed from auto to hidden if message-list handles scroll */
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* Responsive layout */
+@media (max-width: 768px) {
+
+  /* On mobile, header might always stay at top */
+  .app-header {
+    /* Adjust padding/size for smaller screens */
+    padding: 8px 15px;
+  }
+
+  .app-header h1 {
+    font-size: 1.2em;
+  }
+
+  .app-header.sidebar-closed {
+    /* Adjust fixed position if needed for mobile overlay */
+    top: 5px;
+    left: 50px;
+    /* Adjust based on mobile toggle button */
+  }
+
+  /* If app-container uses flex-direction: column on mobile */
+  /* .main-content {
+     height: auto; /* Or remaining height */
+  /* flex-grow: 1;
+  } */
+}
