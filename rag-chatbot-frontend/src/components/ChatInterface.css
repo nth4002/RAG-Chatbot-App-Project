@@ -8,14 +8,14 @@
 }
 
 .message-list {
-  /* ... */
   flex-grow: 1;
+  /* Allows list to expand vertically */
   overflow-y: auto;
+  /* ADDS SCROLLBAR TO THE LIST ITSELF */
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 15px;
-  /* Space between messages */
 }
 
 /* --- Message Layout Modifications --- */
@@ -223,7 +223,142 @@
 }
 
 .response-details {
-  /* ... */
+  /* Spacing */
+  margin: 15px 20px 10px 20px;
+  /* Add space around the block (Top Horizontal Bottom) */
+
+  /* Container Appearance */
+  border: 1px solid #e0e0e0;
+  /* Subtle border, matches input form top border */
+  border-radius: 8px;
+  /* Consistent rounded corners */
+  background-color: #f8f9fa;
+  /* Light background, slightly different from messages */
+  overflow: hidden;
+  /* Ensures children conform to border-radius */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  /* Very subtle shadow */
+}
+
+/* The clickable summary part */
+.response-details summary {
+  padding: 10px 15px;
+  cursor: pointer;
+  font-weight: 500;
+  /* Medium weight for the title */
+  color: #3c4043;
+  /* Dark grey text */
+  background-color: #f1f3f4;
+  /* Slightly different background for summary */
+  /* border-bottom: 1px solid #e0e0e0; Removed: Add border only when open for cleaner look */
+  outline: none;
+  /* Remove default focus outline */
+  transition: background-color 0.2s ease;
+  list-style-position: inside;
+  /* Better marker positioning (or hide marker) */
+  position: relative;
+  /* For potential custom marker */
+}
+
+/* Style the default marker */
+.response-details summary::marker {
+  color: #5f6368;
+  font-size: 0.8em;
+  /* Make marker smaller */
+}
+
+/* Alternative: Hide default marker and add custom one */
+/*
+.response-details summary { list-style: none; }
+.response-details summary::-webkit-details-marker { display: none; }
+.response-details summary::before {
+    content: '+'; / Or a chevron SVG /
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2em;
+    color: #5f6368;
+    transition: transform 0.2s ease;
+}
+.response-details[open] > summary::before {
+    transform: translateY(-50%) rotate(45deg); / Rotate plus to 'x' /
+}
+*/
+
+
+.response-details summary:hover {
+  background-color: #e8eaed;
+  /* Slightly darker hover */
+}
+
+/* Style summary specifically when details are open */
+.response-details[open]>summary {
+  border-bottom: 1px solid #e0e0e0;
+  /* Add border only when content is shown */
+  background-color: #e8eaed;
+  /* Keep hover/active state */
+}
+
+/* The content area that appears */
+.response-details div {
+  padding: 15px;
+  /* Padding inside the content area */
+  border-top: none;
+  /* Ensure no double border */
+}
+
+/* Headings within the details (h4) */
+.response-details h4 {
+  margin-top: 0;
+  /* Remove default top margin */
+  margin-bottom: 8px;
+  /* Space below heading */
+  font-size: 0.85em;
+  /* Slightly smaller */
+  color: #5f6368;
+  /* Subtler color than main text */
+  font-weight: 600;
+  /* Bolder than regular text */
+  text-transform: uppercase;
+  /* Optional: Uppercase */
+  letter-spacing: 0.5px;
+  /* Optional: Spacing */
+}
+
+/* Preformatted text blocks (for answer, model, session ID) */
+.response-details pre {
+  background-color: #e8eaed;
+  /* Background similar to summary hover */
+  padding: 12px;
+  border-radius: 6px;
+  /* Slightly less rounded than container */
+  border: 1px solid #dadce0;
+  /* Subtle border for the block */
+  overflow-x: auto;
+  /* Allow horizontal scroll if content is too wide */
+  white-space: pre-wrap;
+  /* Allow text to wrap */
+  word-wrap: break-word;
+  /* Break long words if needed */
+  font-size: 0.9em;
+  /* Consistent font size for code/details */
+  margin-bottom: 15px;
+  /* Space below each pre block */
+  line-height: 1.5;
+}
+
+/* Remove margin from the last pre block */
+.response-details pre:last-of-type {
+  margin-bottom: 0;
+}
+
+/* The code tag itself */
+.response-details code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  /* Standard monospace font stack */
+  color: #202124;
+  /* Dark text for readability */
 }
 
 /* Responsive */
@@ -243,5 +378,31 @@
   .message {
     gap: 8px;
     /* Reduce gap */
+  }
+
+  .response-details {
+    margin-left: 15px;
+    /* Reduce horizontal margin */
+    margin-right: 15px;
+  }
+
+  .response-details summary,
+  .response-details div {
+    padding: 10px 12px;
+    /* Adjust padding */
+  }
+
+  .response-details pre {
+    padding: 10px;
+  }
+
+  .response-details h4 {
+    font-size: 0.8em;
+    /* Slightly smaller heading */
+  }
+
+  .response-details code {
+    font-size: 0.85em;
+    /* Slightly smaller code */
   }
 }

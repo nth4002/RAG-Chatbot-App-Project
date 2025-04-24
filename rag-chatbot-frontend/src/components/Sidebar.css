@@ -490,6 +490,68 @@
   /* Adjust space as needed (button height + desired gap) */
 }
 
+/* --- NEW: Chat History Styles --- */
+.chat-history-section {
+  /* Optional: Adjust spacing if needed */
+  /* margin-bottom: 25px; */
+}
+
+.chat-history-list {
+  margin-top: 10px;
+  max-height: 200px;
+  /* Limit height and add scroll */
+  overflow-y: auto;
+  padding-right: 5px;
+  /* Space for scrollbar */
+  border-top: 1px solid #d1d5db;
+  /* Separator above list */
+  padding-top: 10px;
+}
+
+.chat-session-item {
+  display: block;
+  /* Make button take full width */
+  width: 100%;
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 5px;
+  /* Space between items */
+  text-align: left;
+  font-size: 0.9em;
+  color: #374151;
+  /* Dark grey text */
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Add ellipsis for long names */
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.chat-session-item:hover {
+  background-color: #e5e7eb;
+  /* Light grey hover */
+}
+
+.chat-session-item.active {
+  background-color: #dbeafe;
+  /* Light blue for active item (Tailwind blue-100) */
+  color: #1e40af;
+  /* Darker blue text (Tailwind blue-800) */
+  font-weight: 500;
+}
+
+/* Message shown when no history exists */
+.no-history-message {
+  font-size: 0.9em;
+  color: #6b7280;
+  /* Medium grey */
+  font-style: italic;
+  margin-top: 10px;
+}
+
 /* Responsive Sidebar (Simplified) */
 @media (max-width: 768px) {
 
@@ -529,5 +591,16 @@
   .sidebar-toggle-button.closed {
     left: 10px;
     top: 10px;
+  }
+
+  .chat-history-list {
+    max-height: 150px;
+    /* Adjust height for mobile */
+  }
+
+  .chat-session-item {
+    padding: 7px 10px;
+    /* Adjust padding */
+    font-size: 0.85em;
   }
 }

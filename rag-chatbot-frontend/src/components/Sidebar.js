@@ -1,136 +1,153 @@
 // src/components/Sidebar.js
-import React, { useState, useEffect, useCallback } from "react"; // Removed useRef
+import React, { useState, useEffect } from "react"; // Removed useRef
 import { uploadDocument, listDocuments, deleteDocument } from "../services/api";
 import "./Sidebar.css";
 
-// No longer needed: MIN/MAX/DEFAULT WIDTH constants
 
-function Sidebar({ isOpen, toggleSidebar, selectedModel, onModelChange, onDocumentsUpdate }) {
-  // --- Existing State ---
-  const modelOptions = ["gemini-1.5-flash", "gemini-2.0-flash-001"];
-  const [documents, setDocuments] = useState([]);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [selectedDocToDelete, setSelectedDocToDelete] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
-  const [activeTab, setActiveTab] = useState("file");
+function Sidebar({ isOpen, toggleSidebar, selectedModel, onModelChange, onDocumentsUpdate}) {
+    // --- Existing State ---
+    const modelOptions = ["gemini-1.5-flash", "gemini-2.0-flash-001"];
+    const [documents, setDocuments] = useState([]);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [websiteUrl, setWebsiteUrl] = useState("");
+    const [selectedDocToDelete, setSelectedDocToDelete] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [successMessage, setSuccessMessage] = useState(null);
+    const [activeTab, setActiveTab] = useState("file");
 
-  const fetchDocs = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const docs = await listDocuments();
-      const validDocs = Array.isArray(docs) ? docs : [];
-      setDocuments(validDocs);
+    const fetchDocs = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const docs = await listDocuments();
+            const validDocs = Array.isArray(docs) ? docs : [];
+            // update document
+            setDocuments(validDocs);
 
-      if (validDocs.length > 0) {
-        const currentSelectionValid = validDocs.some(doc => doc.id.toString() === selectedDocToDelete.toString());
-        if (!selectedDocToDelete || !currentSelectionValid) {
-            setSelectedDocToDelete(validDocs[0].id);
+            if (validDocs.length > 0) {
+                const currentSelectionValid = validDocs.some(doc => doc.id.toString() === selectedDocToDelete.toString());
+                if (!selectedDocToDelete || !currentSelectionValid) {1
+                    setSelectedDocToDelete(validDocs[0].id);
+                }
+            } 
+            else {
+                setSelectedDocToDelete("");
+            }
+            onDocumentsUpdate(validDocs);
+        } 
+        catch (err) {
+            console.error("Error in fetchDocs:", err);
+            setError(`Failed to fetch documents: ${err.message}`);
+            setDocuments([]);
+            onDocumentsUpdate([]);
         }
-      } else {
-        setSelectedDocToDelete("");
-      }
-      onDocumentsUpdate(validDocs);
-    } catch (err) {
-      console.error("Error in fetchDocs:", err);
-      setError(`Failed to fetch documents: ${err.message}`);
-      setDocuments([]);
-      onDocumentsUpdate([]);
-    } finally {
-      setIsLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  };
-
-  useEffect(() => {
-    fetchDocs();
-  }, []);
+        finally {
+            setIsLoading(false);
+        }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    };
+    // the empty dependency array [] means this effect runs only once,
+    // right after the Sidebar component mounts for the very first time.
+    // Its job is to call fetchDocs() immediately upon mounting to populate 
+    // the initial state of the documents list based on what's currently stored on the server.
+    useEffect(() => {
+      fetchDocs();
+    }, []);
 
   
   const handleFileChange = (event) => {
-    setSelectedFile(event.target.files[0]);
-    setError(null);
-    setSuccessMessage(null);
+      setSelectedFile(event.target.files[0]);
+      setError(null);
+      setSuccessMessage(null);
   };
 
   const handleUrlChange = (event) => {
-    setWebsiteUrl(event.target.value);
-    setError(null);
-    setSuccessMessage(null);
+      setWebsiteUrl(event.target.value);
+      setError(null);
+      setSuccessMessage(null);
   };
 
   const handleFileUpload = async () => {
-    if (!selectedFile) {
-      setError("Please select a file first.");
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    setSuccessMessage(null);
-    try {
-      const response = await uploadDocument(selectedFile);
-      setSuccessMessage(
-        `File '${selectedFile.name}' uploaded successfully with ID ${response.file_id}.`
-      );
-      setSelectedFile(null);
-      const fileInput = document.getElementById("file-upload-input");
-      if (fileInput) fileInput.value = "";
-      fetchDocs();
-    } catch (err) {
-      setError(`File upload failed: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
+      if (!selectedFile) {
+          setError("Please select a file first.");
+          return;
+      }
+      setIsLoading(true);
+      setError(null);
+      setSuccessMessage(null);
+      try {
+          const response = await uploadDocument(selectedFile);
+          setSuccessMessage(
+            `File '${selectedFile.name}' uploaded successfully with ID ${response.file_id}.`
+          );
+
+          // after succcessfully processed the file, we assign everything to its original state
+          setSelectedFile(null);
+          // <input type="file"> is largely uncontrolled regarding its value for security reasons. 
+          // React state cannot directly set which file is selected. Therefore, after an upload, 
+          // the only way to clear the browser's visual representation of the selected file is to directly 
+          // manipulate the DOM element's value property using document.getElementById(...)
+          const fileInput = document.getElementById("file-upload-input");
+          if (fileInput) fileInput.value = "";
+          fetchDocs();
+      } 
+      catch (err) {
+          setError(`File upload failed: ${err.message}`);
+      } 
+      finally {
+          setIsLoading(false);
+      }
   };
 
   const handleUrlUpload = async () => {
-    if (!websiteUrl || !websiteUrl.trim().startsWith("http")) {
-      setError("Please enter a valid website URL (starting with http/https).");
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    setSuccessMessage(null);
-    console.log("I'm Here!")
-    try {
-        const response = await uploadDocument({ url: websiteUrl.trim() });
-        setSuccessMessage(
-          `Website content uploaded successfully with ID ${response.file_id}.`
-        );
-        setWebsiteUrl("");
-        fetchDocs();
-    } 
-    catch (err) {
-        setError(`Website processing failed: ${err.message}`);
-    } 
-    finally {
-        setIsLoading(false);
-    }
+      if (!websiteUrl || !websiteUrl.trim().startsWith("http")) {
+          setError("Please enter a valid website URL (starting with http/https).");
+          return;
+      }
+      setIsLoading(true);
+      setError(null);
+      setSuccessMessage(null);
+  
+      try {
+          const response = await uploadDocument({ url: websiteUrl.trim() });
+          setSuccessMessage(
+            `Website content uploaded successfully with ID ${response.file_id}.`
+          );
+          // The <input type="text"> element used for the website URL is a controlled component in React.
+          setWebsiteUrl("");
+          fetchDocs();
+      } 
+      catch (err) {
+          setError(`Website processing failed: ${err.message}`);
+      } 
+      finally {
+          setIsLoading(false);
+      }
   };
 
   const handleDelete = async () => {
-    if (!selectedDocToDelete) {
-      setError("Please select a document to delete.");
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    setSuccessMessage(null);
-    try {
-      await deleteDocument(selectedDocToDelete);
-      setSuccessMessage(
-        `Document with ID ${selectedDocToDelete} deleted successfully.`
-      );
-      setSelectedDocToDelete('');
-      fetchDocs();
-    } catch (err) {
-      setError(`Failed to delete document: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
+      if (!selectedDocToDelete) {
+          setError("Please select a document to delete.");
+          return;
+      }
+      setIsLoading(true);
+      setError(null);
+      setSuccessMessage(null);
+      try {
+          await deleteDocument(selectedDocToDelete);
+          setSuccessMessage(
+            `Document with ID ${selectedDocToDelete} deleted successfully.`
+          );
+          setSelectedDocToDelete('');
+          fetchDocs();
+      } 
+      catch (err) {
+          setError(`Failed to delete document: ${err.message}`);
+      } 
+      finally {
+          setIsLoading(false);
+      }
   };
 
 
@@ -149,7 +166,7 @@ function Sidebar({ isOpen, toggleSidebar, selectedModel, onModelChange, onDocume
 
       {/* The Sidebar itself */}
       <div
-        // Removed ref={sidebarRef}
+        
         className={`sidebar ${isOpen ? "open" : "closed"}`}
         // Removed inline style for width - now controlled purely by CSS
         aria-hidden={!isOpen}
@@ -165,8 +182,6 @@ function Sidebar({ isOpen, toggleSidebar, selectedModel, onModelChange, onDocume
               </svg>
             </button>
 
-            {/* --- Sidebar Content (Your existing sections) --- */}
-            {/* (Content remains the same as previous version) */}
 
             {/* Model Selection */}
             <div className="sidebar-section">
@@ -184,6 +199,7 @@ function Sidebar({ isOpen, toggleSidebar, selectedModel, onModelChange, onDocume
               </select>
             </div>
 
+            
             {/* Add Document Section */}
             <div className="sidebar-section">
               <h3>Add Document</h3>

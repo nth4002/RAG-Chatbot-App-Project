@@ -1,16 +1,30 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Body
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body, Path 
+# import CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from pydantic_models import QueryInput, QueryResponse, DocumentInfo, DeleteFileRequest
-from langchain_utils import get_rag_chain
+from pydantic_models import (
+    QueryInput,
+    QueryResponse, 
+    DocumentInfo, 
+    DeleteFileRequest,
+    ChatSessionInfo
+)
+from langchain_utils import (
+    get_rag_chain, 
+    get_session_history
+)
 from new_db_util import (
     insert_document_records,
     insert_application_logs,
     get_all_documents,
     get_chat_history,
     delete_document_record,
-    delete_logs_and_documents_collections
+    delete_logs_and_documents_collections,
+    DB_NAME,
+    MONGODB_ATLAS_CLUSTER_URI_2,
+    LOG_COLLECTION_NAME
 )
-from mongo_db_utils import (
+from vector_store_utils import (
     index_document_to_mongodb,
     delete_doc_from_mongodb, 
     initialize_vector_store, 
@@ -26,10 +40,12 @@ from typing import Optional, Dict, Union
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-from mongo_db_utils import vector_store
+from vector_store_utils import vector_store
 
-# import CORS middleware
-from fastapi.middleware.cors import CORSMiddleware
+from langchain_core.messages import HumanMessage, AIMessage
+from pymongo import MongoClient
+
+from typing import List
 
 # setup logging
 logging.basicConfig(filename='rag_chatbot_app.log', level=logging.INFO)
@@ -107,15 +123,18 @@ def chat(query_input: QueryInput):
 
     # get the chat history for the session id, the result is a list of dictionaries
     chat_history = get_chat_history(session_id)
+    config = {
+        "configurable": {"session_id": session_id}
+    }
     logging.info(f"Chat History: {chat_history}")
     
-    rag_chain = get_rag_chain(query_input.model.value)
+    conversational_rag_chain = get_rag_chain(query_input.model.value)
     try:
-        result = rag_chain.invoke({
-            "input": query_input.question,
-            "chat_history": chat_history
-        })
-        
+        result = conversational_rag_chain.invoke(
+            {"input": query_input.question},
+            config=config,
+        )
+        # result is a dictionary with keys include (input, context (list of Document objects), answer)
         answer = result['answer']
         # context = result['context']
         context = vector_store.similarity_search(query_input.question, k=2)
@@ -134,6 +153,65 @@ def chat(query_input: QueryInput):
     insert_application_logs(session_id, query_input.question, answer, query_input.model.value)
     logging.info(f"Session ID: {session_id}, AI Response: {answer}")
     return QueryResponse(answer=answer, session_id=session_id, model=query_input.model)
+
+# this endpoint is for reloading (F5) and still get the same chat history (not going back to the original state)
+@app.get('/chat/history/{session_id}')
+async def get_history(session_id: str = Path(..., description="The ID of the session to retrieve history for")):
+    logging.info(f"Attempting to retrieve chat history for session id: {session_id}")
+
+    try: 
+        history = get_session_history(session_id)
+        messages = history.messages
+        formatted_messages = []
+        for msg in messages:
+            if isinstance(msg, HumanMessage):
+                formatted_messages.append({"role": "user", "content": msg.content})
+            elif isinstance(msg, AIMessage):
+                formatted_messages.append({"role": "assistant", "content": msg.content})
+        logging.info(f"Successfully retrieved {len(formatted_messages)} messages for session {session_id}")
+        return formatted_messages
+    
+    except Exception as e:
+        logging.error(f"Error occured while retrieving history for session {session_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Could not retrieve chat history, error: {str(e)}")
+
+
+
+# this endpoint is for accessing to one of those past chat histories in the sidebar
+@app.get("/chat/sessions", response_model=List[ChatSessionInfo])
+async def get_chat_sessions():
+    """Retrieves a list of all unique chat session IDs."""
+    logging.info("Attempting to retrieve list of all chat sessions")
+    try:
+        # Connect directly to MongoDB to query the chat history collection
+        client = MongoClient(MONGODB_ATLAS_CLUSTER_URI_2)
+        db = client[DB_NAME]
+        logs_collection = db[LOG_COLLECTION_NAME] # Collection used by MongoDBChatMessageHistory
+        logging.info(f"Find total {logs_collection.count_documents({})}documents in log collection")
+        logging.info(f"the keys for logs collection is: {logs_collection.find_one().keys()}")
+        # Find distinct SessionId values
+        distinct_session_ids = logs_collection.distinct("session_id")
+        logging.info(f"Found {len(distinct_session_ids)} distinct session IDs.")
+
+        # Create response data (simplified for now)
+        sessions_info = []
+        for session_id in distinct_session_ids:
+             # Create a basic display name (e.g., "Chat ****uuid_end")
+             display_name = f"Chat ...{session_id[-6:]}" if len(session_id) > 6 else session_id
+             sessions_info.append(ChatSessionInfo(session_id=session_id, display_name=display_name))
+
+        # Optional Enhancement: Sort by most recent? Requires fetching timestamps.
+
+        client.close() # Close the connection
+        return sessions_info
+
+    except Exception as e:
+        logging.error(f"Error retrieving chat session list: {str(e)}")
+        # Close client if open on error
+        try: client.close()
+        except: pass
+        raise HTTPException(status_code=500, detail="Could not retrieve chat session list.")
+    
 
 @app.post('/upload-file')
 async def upload_file(
@@ -220,7 +298,6 @@ async def upload_website(website: Dict = Body(...)):
     
 @app.get("/list-docs", response_model=list[DocumentInfo])
 def list_documents():
-    logging.error("ERROR here!")
     return get_all_documents()
 
 @app.post("/delete-doc")

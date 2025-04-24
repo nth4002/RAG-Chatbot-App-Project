@@ -1,0 +1,154 @@
+/* src/components/ChatHistorySidebar.css */
+.chat-history-sidebar {
+    width: 260px;
+    /* Slightly wider */
+    height: 100vh;
+    background-color: #f8f9fa;
+    /* Consistent light grey */
+    border-left: 1px solid #e8eaed;
+    /* Lighter border */
+    padding: 0;
+    /* Remove outer padding, manage internally */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.chat-history-sidebar h3 {
+    margin: 0;
+    /* Remove default margins */
+    padding: 16px 20px 12px 20px;
+    /* Specific padding */
+    font-size: 1.05em;
+    /* Slightly smaller */
+    font-weight: 500;
+    /* Medium weight */
+    color: #5f6368;
+    /* Grey heading color */
+    flex-shrink: 0;
+    border-bottom: 1px solid #e8eaed;
+    /* Lighter border */
+}
+
+.chat-history-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin: 8px 0 0 0;
+    /* Add some top margin */
+    padding: 0 10px 10px 10px;
+    /* Padding left/right/bottom */
+}
+
+/* Add custom scrollbar styling (optional, webkit browsers) */
+.chat-history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-history-list::-webkit-scrollbar-track {
+    background: transparent;
+    /* Make track invisible */
+}
+
+.chat-history-list::-webkit-scrollbar-thumb {
+    background-color: #dadce0;
+    /* Subtle scrollbar color */
+    border-radius: 3px;
+}
+
+.chat-history-list::-webkit-scrollbar-thumb:hover {
+    background-color: #bdc1c6;
+    /* Darker on hover */
+}
+
+
+.chat-session-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    /* Increase gap */
+    width: 100%;
+    background-color: transparent;
+    border: none;
+    border-radius: 20px;
+    /* More rounded, pill-like */
+    padding: 10px 14px;
+    /* Adjust padding */
+    margin-bottom: 2px;
+    /* Reduce gap between items */
+    text-align: left;
+    font-size: 0.9em;
+    color: #3c4043;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color 0.15s ease-out;
+    /* Faster transition */
+}
+
+.chat-session-item:hover {
+    background-color: #f1f3f4;
+    /* Slightly darker grey hover */
+}
+
+.chat-session-item.active {
+    background-color: #e8f0fe;
+    /* Google blue light background */
+    color: #174ea6;
+    /* Darker Google blue text */
+    font-weight: 500;
+    /* Keep medium weight */
+}
+
+/* Prevent hover effect when active */
+.chat-session-item.active:hover {
+    background-color: #e8f0fe;
+}
+
+
+.chat-session-icon {
+    width: 1.1em;
+    /* Slightly larger icon */
+    height: 1.1em;
+    fill: currentColor;
+    flex-shrink: 0;
+    opacity: 0.7;
+    /* Default subtle icon */
+    transition: opacity 0.15s ease-out;
+}
+
+.chat-session-item:hover .chat-session-icon,
+.chat-session-item.active .chat-session-icon {
+    opacity: 1;
+    /* Make icon clearer on hover/active */
+}
+
+.chat-session-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.loading-message,
+.no-history-message {
+    font-size: 0.85em;
+    /* Smaller text */
+    color: #5f6368;
+    /* Match heading color */
+    font-style: normal;
+    /* Remove italics */
+    padding: 15px;
+    text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .chat-history-sidebar {
+        display: none;
+    }
+}
+
+/* No changes needed for 768px as it's already hidden */

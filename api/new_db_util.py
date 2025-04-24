@@ -8,13 +8,14 @@ client = MongoClient(
     MONGODB_ATLAS_CLUSTER_URI_2
 )
 DB_NAME = "Chatbot-Database-Cluster"
-COLLECTION_NAME = "Chatbot-Database-Collection"
+CHATBOT_COLLECTION_NAME = "Chatbot-Database-Collection"
 ATLAS_VECTOR_SEARCH_INDEX_NAME = "Chatbot-Database-Index"
-
-CHATBOT_COLLECTION = client[DB_NAME][COLLECTION_NAME]
-db = client["rag_chatbot_app"]
-logs_collection = db["application_logs"]
-documents_collection = db['document_store']
+LOG_COLLECTION_NAME = "application_logs"
+DOC_COLLECTION_NAME = "document_store"
+CHATBOT_COLLECTION = client[DB_NAME][CHATBOT_COLLECTION_NAME]
+db = client[DB_NAME]
+logs_collection = db[LOG_COLLECTION_NAME]
+documents_collection = db[DOC_COLLECTION_NAME]
 
 # managing chat logs
 def insert_application_logs(session_id, user_query, llm_response, model):

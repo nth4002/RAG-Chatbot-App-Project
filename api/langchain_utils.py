@@ -5,16 +5,29 @@ from langchain.chains import create_history_aware_retriever, create_retrieval_ch
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from typing import List
 from langchain_core.documents import Document
+
+from langchain_mongodb import MongoDBChatMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
+# from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.runnables.history import RunnableWithMessageHistory
+
 import os
 import logging
 from dotenv import load_dotenv, find_dotenv
+from vector_store_utils import vector_store
+
+
+# import API key, DB name and collection
+from new_db_util import (
+    DB_NAME,
+    CHATBOT_COLLECTION_NAME,
+    MONGODB_ATLAS_CLUSTER_URI_2,
+    ATLAS_VECTOR_SEARCH_INDEX_NAME, 
+    CHATBOT_COLLECTION
+)
 
 load_dotenv(find_dotenv(), override=True)
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
-
-from mongo_db_utils import vector_store
-# retriever = vector_store.as_retriever(search_kwargs={"k": 2})
-
 
 retriever = vector_store.as_retriever(
     search_type="similarity_score_threshold",
@@ -80,13 +93,30 @@ qa_prompt = ChatPromptTemplate(
 )
 
 
+def get_session_history(session_id: str) -> MongoDBChatMessageHistory:
+    history = MongoDBChatMessageHistory(
+        connection_string=MONGODB_ATLAS_CLUSTER_URI_2,
+        session_id = session_id,
+        create_index=True,
+        database_name=DB_NAME,
+        collection_name=CHATBOT_COLLECTION_NAME,
+    )
+    return history
+
 
 def get_rag_chain(model="gemini-2.0-flash-001"):
     llm = ChatGoogleGenerativeAI(model=model, google_api_key=GOOGLE_API_KEY)
     history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-    # Modify the question_answer_chain to return both answer and source documents
     
+    conversational_rag_chain = RunnableWithMessageHistory(
+        rag_chain,
+        get_session_history,
+        input_messages_key="input",
+        history_messages_key="chat_history",
+        output_messages_key="answer",
+    )
 
-    return rag_chain
+    return conversational_rag_chain
+

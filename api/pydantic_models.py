@@ -70,4 +70,12 @@ DeleteFileRequest: represents the request to delete an indexed document
 """ 
 class DeleteFileRequest(BaseModel):
     file_id: str
-    
+
+
+"""
+ChatSessionInfo: represents for the session id belong to a specific chat messages
+"""
+class ChatSessionInfo(BaseModel):
+    session_id: str
+    # Optional: Add first message snippet or timestamp later
+    display_name: str # For now, just use session_id slightly formatted

@@ -11,7 +11,8 @@ export const getApiResponse = async (question, sessionId, model) => {
     };
     const data = { question, model };
     if (sessionId) {
-          data.sessionId = sessionId;
+          data.session_id = sessionId;
+          console.log("Existing session ID", sessionId)
     }
     try {
         const response = await fetch (url , {
@@ -32,6 +33,51 @@ export const getApiResponse = async (question, sessionId, model) => {
     }
 };
 
+export const getChatHistory = async (sessionId) => {
+    if (!sessionId) {
+        return [];
+    }
+    const url = `${API_BASE_URL}/chat/history/${sessionId}`;
+
+    try {
+        const response = await fetch(url, {
+            method: "GET"
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.warn(`Failed to fetch history with status ${response.status}: ${errorText}`)
+            return [];
+        }
+
+        const historyData = await response.json();
+        return Array.isArray(historyData) ? historyData : [];
+    }
+    catch (error) {
+        console.error(`Error fetching chat history: ${error}`);
+        return [];
+    }
+};
+
+// --- NEW FUNCTION: listChatSessions ---
+export const listChatSessions = async () => {
+    const url = `${API_BASE_URL}/chat/sessions`;
+    // console.log("Fetching chat session list...");
+    try {
+        const response = await fetch(url, { method: 'GET' });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Failed to fetch chat sessions (status ${response.status}): ${errorText}`);
+            return []; // Return empty on failure
+        }
+        const sessionsData = await response.json();
+        console.log("Fetch successfully!");
+        // console.log("Received chat sessions:", sessionsData);
+        return Array.isArray(sessionsData) ? sessionsData : [];
+    } catch (error) {
+        console.error("Error fetching chat session list:", error);
+        return []; // Return empty on network/parsing error
+    }
+};
 export const uploadDocument = async (inputData) => {
     let url;
     let options;
@@ -70,9 +116,9 @@ export const uploadDocument = async (inputData) => {
     }
 
     try {
-        console.log(url);
+        // console.log(url);
         const response = await fetch (url, options);
-        console.log("Inside uploadDocument");
+        // console.log("Inside uploadDocument");
         if (!response.ok) {
             const errorText = await response.text();
             console.log('Error when uploading with response text: ', errorText);
