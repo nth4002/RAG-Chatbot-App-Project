@@ -27,7 +27,7 @@ function Sidebar({ isOpen, toggleSidebar, selectedModel, onModelChange, onDocume
 
             if (validDocs.length > 0) {
                 const currentSelectionValid = validDocs.some(doc => doc.id.toString() === selectedDocToDelete.toString());
-                if (!selectedDocToDelete || !currentSelectionValid) {1
+                if (!selectedDocToDelete || !currentSelectionValid) {
                     setSelectedDocToDelete(validDocs[0].id);
                 }
             } 
