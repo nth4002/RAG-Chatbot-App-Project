@@ -76,7 +76,7 @@ system_prompt = (
     "Sử dụng các phần ngữ cảnh sau đây để trả lời "
     "câu hỏi. Các câu hỏi sẽ liên quan với nhau hoặc có trong ngữ cảnh"
     "Nếu bạn không biết câu trả lời, hãy nói rằng bạn "
-    "không biết. Sử dụng tối đa ba câu và giữ cho câu trả lời ngắn gọn."
+    "không biết. Sử dụng tối đa ba câu và giữ cho câu trả lời ngắn gọn nhưng đầy đủ nội dung."
     "Nếu người dùng cảm thán hoặc nói chuyện bình thường mà không hỏi gì,"
     "hoặc nói chuyện hay hỏi câu hỏi không liên quan,"
     "hãy trả lời theo ý của bạn một cách lịch sự nhất có thể."

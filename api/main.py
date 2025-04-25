@@ -7,7 +7,8 @@ from pydantic_models import (
     QueryResponse, 
     DocumentInfo, 
     DeleteFileRequest,
-    ChatSessionInfo
+    ChatSessionInfo,
+    LandmarkInfoInput
 )
 from langchain_utils import (
     get_rag_chain, 
@@ -31,7 +32,7 @@ from vector_store_utils import (
     delete_collection,
     create_index
 )
-import os
+import os, re
 import uuid
 import logging
 import os
@@ -60,16 +61,16 @@ async def lifespan(app: FastAPI):
     yield
     # Cleanup: Delete the MongoDB collection on shutdown
     logging.info("Shutting down server, deleting MongoDB vector store collection...")
-    if delete_collection():
-        logging.info("MongoDB vector store collection deleted successfully during shutdown")
-    else:
-        logging.error("Failed to delete MongoDB store collection during shutdown")    
-    print("App shutdown: Deleting MongoDB collections...")
-    result = delete_logs_and_documents_collections()
-    if result:
-        logging.info(f"Chatbot database deleted successfully during shutdown")
-    else:
-        logging.error("Failed to delete Chatbot database during shutdown")
+    # if delete_collection():
+    #     logging.info("MongoDB vector store collection deleted successfully during shutdown")
+    # else:
+    #     logging.error("Failed to delete MongoDB store collection during shutdown")    
+    # print("App shutdown: Deleting MongoDB collections...")
+    # result = delete_logs_and_documents_collections()
+    # if result:
+    #     logging.info(f"Chatbot database deleted successfully during shutdown")
+    # else:
+    #     logging.error("Failed to delete Chatbot database during shutdown")
     # logging.info(f"Cleanup done: {result}")
 
 app = FastAPI(lifespan=lifespan)
@@ -314,3 +315,95 @@ def delete_document(request: DeleteFileRequest):
             return {"error": f"Deleted from MognoDB Atlas but failed to delete document with file_id {request.file_id} from the database."}
     else:
         return {"error": f"Failed to delete document with file_id {request.file_id} from MongoDB."}
+    
+
+@app.post('/upload-landmark-info')
+async def upload_landmark_info(landmark_data: LandmarkInfoInput = Body(...)):
+    """
+    Accepts landmark information as JSON, extracts relevant text,
+    saves it to a temporary file, and indexes it.
+    """
+    logging.info(f"Received landmark data for: {landmark_data.name}")
+    print(f"Received landmark data for: {landmark_data.name}")
+
+    # 1. Extract relevant text fields
+    content_parts = []
+    content_parts.append(f"Name: {landmark_data.name}")
+    if landmark_data.description:
+        content_parts.append(f"Description: {landmark_data.description}")
+
+    # Extract historical events if they exist
+    if landmark_data.additionalInfo and landmark_data.additionalInfo.historicalEvents:
+        content_parts.append("\nHistorical Events:")
+        for event in landmark_data.additionalInfo.historicalEvents:
+            content_parts.append(f"\n---\nTitle: {event.title}\nDescription: {event.description}")
+
+    content = "\n".join(content_parts)
+    logging.info(content)
+    # 2. Sanitize the name for use as a filename
+    # Remove non-alphanumeric characters (except spaces, hyphens, underscores) and replace spaces with underscores
+    sanitized_name = re.sub(r'[^\w\- ]', '', landmark_data.name)
+    sanitized_name = re.sub(r'\s+', '_', sanitized_name).strip('_')
+    if not sanitized_name: # Handle cases where the name becomes empty after sanitization
+        sanitized_name = f"landmark_{landmark_data._id}"
+
+    # Create a unique temporary filename based on the sanitized name
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    tmp_filename = f"tmp_{sanitized_name}_{timestamp}.txt"
+    tmp_file_path = tmp_filename # Assuming it's created in the current directory
+
+    logging.info(f"Aggregated content length: {len(content)} chars.")
+    logging.info(f"Using temporary file path: {tmp_file_path}")
+
+    file_id = None # Initialize file_id
+    try:
+        # 3. Write content to temporary file
+        with open(tmp_file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+        # 4. Insert record into your document tracking database
+        # Use the original landmark name for the record
+        full_path = os.path.abspath(tmp_file_path)
+        logging.info(full_path)
+        file_id = insert_document_records(landmark_data.name + ".json_info") # Append context
+        logging.info(f"Inserted document record for '{landmark_data.name}', file_id: {file_id}")
+
+        # 5. Index the temporary file content into MongoDB Vector Store
+        success = index_document_to_mongodb(full_path, file_id)
+
+        if success:
+            logging.info(f"Landmark info '{landmark_data.name}' (file_id: {file_id}) indexed successfully from temporary file.")
+            return {
+                "message": f"Landmark information for '{landmark_data.name}' has been successfully processed and indexed.",
+                "file_id": file_id
+            }
+        else:
+            # If indexing fails, attempt to roll back the document record insertion
+            logging.error(f"Failed to index landmark info '{landmark_data.name}' (file_id: {file_id}) from {full_path}.")
+            if file_id:
+                delete_document_record(file_id)
+                logging.info(f"Rolled back document record insertion for file_id: {file_id}")
+            raise HTTPException(status_code=500, detail=f"Failed to index landmark information for '{landmark_data.name}'")
+
+    except Exception as e:
+        logging.error(f"Error processing landmark info '{landmark_data.name}': {str(e)}", exc_info=True)
+         # Attempt rollback if file_id was generated before the exception
+        if file_id:
+             try:
+                 # Check if the record still exists before trying to delete
+                 # Note: This might require a function like `check_document_exists(file_id)`
+                 # For simplicity, we just try to delete. If it fails, log it.
+                 delete_document_record(file_id)
+                 logging.info(f"Rolled back document record insertion for file_id: {file_id} due to exception.")
+             except Exception as del_e:
+                 logging.error(f"Failed to rollback document record {file_id} after error: {del_e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred processing landmark information: {str(e)}")
+
+    finally:
+        # 6. Clean up the temporary file
+        if os.path.exists(tmp_file_path):
+            try:
+                os.remove(tmp_file_path)
+                logging.info(f"Removed temporary file: {tmp_file_path}")
+            except Exception as e:
+                logging.error(f"Error removing temporary file {tmp_file_path}: {str(e)}")

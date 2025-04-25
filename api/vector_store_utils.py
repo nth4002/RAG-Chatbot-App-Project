@@ -5,7 +5,7 @@ MongoDB Atlas  vector store, which is essential for our
 RAG system's retrieval capabilities.
 """
 
-from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, UnstructuredHTMLLoader
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -196,6 +196,9 @@ def load_and_split_document(file_path: str) -> List[Document]:
     elif file_path.endswith('.docx'):
         print(f"Processing the Docx file!")
         loader = Docx2txtLoader(file_path)
+    elif file_path.endswith('.txt'):
+        print('Processing the text file!')
+        loader = TextLoader(file_path, encoding='utf-8')
     elif file_path.endswith('.html') or file_path.startswith("http"):
         print(f"Processing the html file!")
         return load_and_split_html(file_path)

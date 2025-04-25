@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react"; // Adde
 import Sidebar from "./components/Sidebar"; //left sidebar
 import ChatHistorySidebar from "./components/ChatHistorySidebar"; // Right Sidebar (History)
 import ChatInterface from "./components/ChatInterface";
-
+import TestComponent from "./components/test";
 // *** Import the new API function ***
 import { listChatSessions } from "./services/api";
 import "./App.css";
@@ -139,6 +139,7 @@ function App() {
         isLoading={isLoadingSessions}
       />
 
+      {/* <TestComponent /> */}
       
     </div>
   );

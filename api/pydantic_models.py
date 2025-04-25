@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field,HttpUrl
 from enum import Enum
 from datetime import datetime
-
+from typing import List, Optional
 # import os
 # model_dir = os.path.join(os.pardir, "models")
 # model_paths = [os.path.join(model_dir,model_path) for model_path in os.listdir(model_dir)]
@@ -79,3 +79,59 @@ class ChatSessionInfo(BaseModel):
     session_id: str
     # Optional: Add first message snippet or timestamp later
     display_name: str # For now, just use session_id slightly formatted
+
+class Coordinates(BaseModel):
+    latitude: str
+    longitude: str
+
+class Stats(BaseModel):
+    averageRating: float # Changed to float
+    totalReviews: int
+    totalVisits: int
+    totalFavorites: int
+
+class LeaderboardUser(BaseModel):
+    userId: Optional[str] = None
+    userName: Optional[str] = ""
+
+class LeaderboardSummary(BaseModel):
+    topScore: int
+    topUser: LeaderboardUser
+    totalParticipants: int
+
+class KnowledgeTestSummary(BaseModel):
+    title: Optional[str] = ""
+    questionCount: int
+    difficulty: Optional[str] = "Medium" # Assuming 'Medium' is a default string
+
+class HistoricalEvent(BaseModel):
+    title: str
+    description: str
+
+class AdditionalInfo(BaseModel):
+    architectural: Optional[str] = None
+    culturalFestival: Optional[str] = None
+    historicalEvents: Optional[List[HistoricalEvent]] = [] # List of nested models
+
+class LandmarkInfoInput(BaseModel):
+    # Use Field alias for MongoDB's _id
+    id_: str = Field(..., alias='_id')
+    name: str
+    description: str
+    images: Optional[List[HttpUrl]] = [] # Use HttpUrl for basic validation
+    location: str
+    coordinates: Coordinates
+    stats: Stats
+    knowledgeTestId: Optional[str] = None
+    leaderboardId: Optional[str] = None
+    leaderboardSummary: LeaderboardSummary
+    knowledgeTestSummary: KnowledgeTestSummary
+    rolePlayIds: Optional[List[str]] = []
+    additionalInfo: AdditionalInfo
+    status: str # Consider making this an Enum if values are fixed
+    popularTags: Optional[List[str]] = []
+    createdAt: datetime # Pydantic V2 automatically handles ISO strings
+    updatedAt: Optional[datetime] = None
+    locationSlug: str
+    nameSlug: str
+    tagsSlug: Optional[List[str]] = []

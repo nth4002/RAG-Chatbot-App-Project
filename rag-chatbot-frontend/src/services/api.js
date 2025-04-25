@@ -177,5 +177,36 @@ export const deleteDocument = async (fileId) => {
         throw error;
     }
 };
-// Note: Streaming endpoint (`/stream`) is not implemented here for simplicity.
-// Implementing streaming would require using EventSource or handling chunked responses.
+
+
+export const uploadLandmarkInfo = async (landMarkDataObject) => {
+    const url = `${API_BASE_URL}/upload-landmark-info`;
+    const headers = {
+        accept: 'application/json',
+        'Content-Type': 'application/json',
+    };
+
+    console.log("Attempting to upload landmark data"); // log for debugging
+
+    try {
+        const response = await fetch (url, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(landMarkDataObject)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Failed to upload landmark data with response text ", errorText);
+            throw new Error(`Failed to upload landmark data with status $${response.status}: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log("Successfully upload to vector store with response result:", result);
+        return result;  
+    }
+    catch(error) {
+        console.error("Error occured while uploading landmark data", error);
+        throw error;
+    }
+};

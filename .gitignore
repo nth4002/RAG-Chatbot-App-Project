@@ -1,17 +1,33 @@
+# Environment variables
+.env*
+
 # Python virtual environment
 venv/
-
-# Environment variables
-.env
-
-# Logs
-*.log
-
-# Byte-compiled files
+.venv/
+*/venv/
+*/.venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
 
-# Ignore specific file in subfolder
-# api/new_db_utils.py
+# Build artifacts
+dist/
+build/
+*.egg-info/
+*.log
 
+# IDE / OS files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
 
+# Docker ignore node_modules in subdirectories too
+**/node_modules
+
+# Explicitly ignore backend venv if created inside api/
+api/venv/
+api/.venv/
