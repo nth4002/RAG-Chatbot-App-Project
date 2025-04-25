@@ -1,6 +1,7 @@
 // this file centrializes all backend communication
 // src/services/api.js
-const API_BASE_URL = "http://localhost:8000"; // Your FastAPI backend URL
+// const API_BASE_URL = "http://localhost:8000"; // Your FastAPI backend URL
+const API_BASE_URL = '/api'; // Use relative path for Nginx proxy
 
 // Corresponds to get_api_response
 export const getApiResponse = async (question, sessionId, model) => {

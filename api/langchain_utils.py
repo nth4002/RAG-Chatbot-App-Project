@@ -20,10 +20,9 @@ from vector_store_utils import vector_store
 # import API key, DB name and collection
 from new_db_util import (
     DB_NAME,
-    CHATBOT_COLLECTION_NAME,
     MONGODB_ATLAS_CLUSTER_URI_2,
     ATLAS_VECTOR_SEARCH_INDEX_NAME, 
-    CHATBOT_COLLECTION
+    LOG_COLLECTION_NAME
 )
 
 load_dotenv(find_dotenv(), override=True)
@@ -35,7 +34,13 @@ retriever = vector_store.as_retriever(
 )
 output_parser = StrOutputParser()
 
-logging.basicConfig(filename="rag_chatbot_app.log", level=logging.INFO)
+# logging.basicConfig(filename="rag_chatbot_app.log", level=logging.INFO)
+#W setup logging for containerized app
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # Example format
+    # No filename argument - defaults to stderr
+)
 
 
 # Set up prompts and chains
@@ -99,7 +104,7 @@ def get_session_history(session_id: str) -> MongoDBChatMessageHistory:
         session_id = session_id,
         create_index=True,
         database_name=DB_NAME,
-        collection_name=CHATBOT_COLLECTION_NAME,
+        collection_name=LOG_COLLECTION_NAME,
     )
     return history
 

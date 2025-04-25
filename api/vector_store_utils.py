@@ -30,8 +30,13 @@ from scraper import WebScraper
 load_dotenv(find_dotenv(), override=True)
 
 # set up logging
-logging.basicConfig(filename="rag_chatbot_app.log", level=logging.INFO)
-
+# logging.basicConfig(filename="rag_chatbot_app.log", level=logging.INFO)
+#W setup logging for containerized app
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # Example format
+    # No filename argument - defaults to stderr
+)
 
 # local_embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 text_splitters = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
@@ -49,9 +54,9 @@ MONGODB_ATLAS_CLUSTER_URI = os.getenv("MONGODB_ATLAS_CLUSTER_URI")
 client = MongoClient(
     MONGODB_ATLAS_CLUSTER_URI
 )
-DB_NAME = "RAG-Chatbot-Cluster"
-COLLECTION_NAME = "RAG-Chatbot-Collection"
-ATLAS_VECTOR_SEARCH_INDEX_NAME = "RAG-Chatbot-Index"
+DB_NAME = "Vector-Store-Cluster"
+COLLECTION_NAME = "Vector-Store-Collection"
+ATLAS_VECTOR_SEARCH_INDEX_NAME = "Vector-Store-Index"
 
 MONGODB_COLLECTION = client[DB_NAME][COLLECTION_NAME]
 

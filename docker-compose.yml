@@ -1,0 +1,39 @@
+# RAG-CHATBOT/docker-compose.yml
+
+version: '3.8' # Use a recent version
+
+services:
+  # Backend Service (FastAPI)
+  backend:
+    build:
+      context: ./api # Directory containing the backend Dockerfile
+      # dockerfile: Dockerfile # Optional: Specify if filename is different
+    container_name: rag_chatbot_backend
+    restart: unless-stopped # Optional: Restart policy
+    env_file:
+      - .env # <-- CRITICAL: Load variables from .env into this container ONLY
+
+    ports:
+      # Map host port 8000 to container port 8000 (FastAPI's port)
+      - "8000:8000"
+    networks:
+      - chatbot-network # Connect to the custom network
+
+  # Frontend Service (React + Nginx)
+  frontend:
+    build:
+      context: ./rag-chatbot-frontend # Directory containing the frontend Dockerfile
+    container_name: rag_chatbot_frontend
+    restart: unless-stopped # Optional: Restart policy
+    ports:
+      # Map host port 3000 to container port 80 (Nginx's port)
+      - "3000:80"
+    depends_on:
+      - backend # Ensures backend starts before frontend (doesn't guarantee readiness)
+    networks:
+      - chatbot-network # Connect to the custom network
+
+# Define the network for communication between containers
+networks:
+  chatbot-network:
+    driver: bridge # Standard Docker network driver

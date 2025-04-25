@@ -48,9 +48,14 @@ from pymongo import MongoClient
 
 from typing import List
 
-# setup logging
-logging.basicConfig(filename='rag_chatbot_app.log', level=logging.INFO)
-
+# setup logging (locally development)
+# logging.basicConfig(filename='rag_chatbot_app.log', level=logging.INFO)
+#W setup logging for containerized app
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', # Example format
+    # No filename argument - defaults to stderr
+)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database tables and MongoDB vector store when the FastAPI server starts"""
@@ -365,7 +370,7 @@ async def upload_landmark_info(landmark_data: LandmarkInfoInput = Body(...)):
         # Use the original landmark name for the record
         full_path = os.path.abspath(tmp_file_path)
         logging.info(full_path)
-        file_id = insert_document_records(landmark_data.name + ".json_info") # Append context
+        file_id = insert_document_records(landmark_data.name) # Append context
         logging.info(f"Inserted document record for '{landmark_data.name}', file_id: {file_id}")
 
         # 5. Index the temporary file content into MongoDB Vector Store

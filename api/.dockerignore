@@ -1,0 +1,7 @@
+# api/.dockerignore
+rag_chatbot_app.log
+__pycache__/
+*.pyc
+*.log # Can use a pattern too
+venv/
+.venv/

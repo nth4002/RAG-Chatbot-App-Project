@@ -2,17 +2,20 @@ from datetime import datetime
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import os
+from dotenv import load_dotenv, find_dotenv
 
+
+load_dotenv(find_dotenv(), override=True) # Load .env from current dir
 MONGODB_ATLAS_CLUSTER_URI_2 = os.getenv("MONGODB_ATLAS_CLUSTER_URI_2")
 client = MongoClient(
     MONGODB_ATLAS_CLUSTER_URI_2
 )
 DB_NAME = "Chatbot-Database-Cluster"
-CHATBOT_COLLECTION_NAME = "Chatbot-Database-Collection"
+# CHATBOT_COLLECTION_NAME = "Chatbot-Database-Collection"
 ATLAS_VECTOR_SEARCH_INDEX_NAME = "Chatbot-Database-Index"
 LOG_COLLECTION_NAME = "application_logs"
 DOC_COLLECTION_NAME = "document_store"
-CHATBOT_COLLECTION = client[DB_NAME][CHATBOT_COLLECTION_NAME]
+# CHATBOT_COLLECTION = client[DB_NAME][CHATBOT_COLLECTION_NAME]
 db = client[DB_NAME]
 logs_collection = db[LOG_COLLECTION_NAME]
 documents_collection = db[DOC_COLLECTION_NAME]
@@ -68,3 +71,8 @@ def delete_logs_and_documents_collections():
         "documents_deleted": result1.deleted_count,
         "metadata_deleted": result2.deleted_count
     }
+
+
+# documents = get_all_documents()
+# for doc in documents:
+#     print(doc)
