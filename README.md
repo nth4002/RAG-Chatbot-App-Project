@@ -39,9 +39,9 @@ uvicorn main:app --reload
 5. Start a conversation with the chatbot!
 
 ## Getting Started (deploying)
-3. Run the application:
+Run the application:
 - Using docker by running the following command:
-``
+```
 docker-compose up --build
 ```
 
