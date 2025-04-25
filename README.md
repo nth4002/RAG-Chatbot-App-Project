@@ -3,7 +3,7 @@ This repository is used for experimenting to get more insights in RAG-Chatbot. T
 by configuring the prompt for RAG chain.
 Feel free to download and playing around with it
 
-## Getting Started
+## Getting Started (development)
 
 ### Dependencies
 
@@ -38,6 +38,21 @@ uvicorn main:app --reload
 
 5. Start a conversation with the chatbot!
 
+## Getting Started (deploying)
+3. Run the application:
+- Using docker by running the following command:
+``
+docker-compose up --build
+```
+
+- If Docker tries to reuse existing containers by default, run the following commands:
+```
+docker-compose down --remove-orphans
+docker image prune -f
+docker-compose up --build
+```
+
+- Access the website at: http://localhost:3000/
 ## How it Works
 
 The app as follows:
