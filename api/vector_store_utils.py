@@ -9,7 +9,7 @@ from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, Te
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from typing import List
+from typing import List, Optional
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv, find_dotenv
@@ -218,24 +218,23 @@ def load_and_split_document(file_path: str) -> List[Document]:
 Indexing documents
 """
 
-def index_document_to_mongodb(file_path: str, file_id: int) -> bool:
+def index_document_to_mongodb(file_path: str, file_id: int, heritage_id: Optional[str] = None) -> bool:
     try:
         # load and split the document into smaller chunks
         splits = load_and_split_document(file_path)
         logging.info(f"Loaded {len(splits)} document chunks from {file_path}")
-        # each document contains 2 attributes: a dictionary called metadata and a string called page_content
+        
         for split in splits:
-            # add file id to the metadata of each split
-            split.metadata['file_id'] = file_id
+            split.metadata['file_id'] = file_id  # Unique ID for this specific document content
+            if heritage_id:
+                split.metadata['heritage_id'] = heritage_id # ID for the overall heritage item
         
-        # add the document chunks to the vector store
         vector_store.add_documents(splits)
-        
+        logging.info(f"Successfully indexed {len(splits)} chunks for file_id: {file_id}, heritage_id: {heritage_id}")
         return True
     except Exception as e:
-        print(f"Error indexing document: {e}")
-        return False
-    
+        logging.error(f"Error indexing document (file_id: {file_id}, heritage_id: {heritage_id}): {e}", exc_info=True)
+        return False    
     
 """Deleting documents"""
 

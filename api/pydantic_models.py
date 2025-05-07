@@ -37,6 +37,7 @@ class QueryInput(BaseModel):
     question: str
     session_id: str = Field(default=None)
     model: ModelName = Field(default=ModelName.GEMINI_FLASH)
+    heritage_id_filter: Optional[str] = None
     
 """
 QueryResponse: represents the response to a chat query

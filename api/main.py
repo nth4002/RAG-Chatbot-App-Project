@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Body, Path 
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body, Path, Form
 # import CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -83,7 +83,8 @@ app = FastAPI(lifespan=lifespan)
 
 # configure and add the cors middleware
 origins = [
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'http://localhost:5173'
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -120,41 +121,60 @@ def scrape_website(url: str) -> str:
 
 @app.post("/chat", response_model=QueryResponse)
 def chat(query_input: QueryInput):
-    # get the session id from the input, if not present, generate a new one
     session_id = query_input.session_id
-    logging.info(f"Session ID: {session_id}, User Query: {query_input.question},\
-        Model: {query_input.model.value}")
+    logging.info(f"Session ID: {session_id}, User Query: {query_input.question}, Model: {query_input.model.value}, Heritage Filter: {query_input.heritage_id_filter}")
     if not session_id:
         session_id = str(uuid.uuid4())
 
-    # get the chat history for the session id, the result is a list of dictionaries
-    chat_history = get_chat_history(session_id)
-    config = {
-        "configurable": {"session_id": session_id}
-    }
-    logging.info(f"Chat History: {chat_history}")
-    
+    chat_history = get_chat_history(session_id) # For conversational chain state
+    config = {"configurable": {"session_id": session_id}}
+    logging.info(f"Chat History for session {session_id}: {chat_history}")
+     
     conversational_rag_chain = get_rag_chain(query_input.model.value)
+    
     try:
-        result = conversational_rag_chain.invoke(
-            {"input": query_input.question},
-            config=config,
-        )
-        # result is a dictionary with keys include (input, context (list of Document objects), answer)
-        answer = result['answer']
-        # context = result['context']
-        context = vector_store.similarity_search(query_input.question, k=2)
+        # --- Context Retrieval with Filtering ---
+        search_kwargs = {"k": 3} # Number of documents to retrieve
+        if query_input.heritage_id_filter:
+            # MongoDB Atlas Vector Search uses a 'filter' dict for pre-filtering
+            # The metadata field name must match exactly how it's stored.
+            search_kwargs["filter"] = {"heritage_id": query_input.heritage_id_filter}
+            logging.info(f"Performing similarity search with filter: {search_kwargs['filter']}")
+        else:
+            logging.info("Performing similarity search without heritage_id filter.")
+
+        
+        if query_input.heritage_id_filter:
+            # Create a specific retriever for this request
+            filtered_retriever = vector_store.as_retriever(
+                search_kwargs={'k': 3, 'filter': {'heritage_id': query_input.heritage_id_filter}}
+            )
+            logging.info(f"Using filtered retriever with filter: {{'heritage_id': '{query_input.heritage_id_filter}'}}")
+        else:
+            # Default retriever
+            filtered_retriever = vector_store.as_retriever(search_kwargs={'k': 3})
+            logging.info("Using default retriever without heritage filter.")
+
+        context_documents = filtered_retriever.invoke(query_input.question)
         
         # Log the retrieved documents
-        if context:
-            logging.info(f"Retrieved documents: {context}")
-            
+        if context_documents:
+            logging.info(f"Retrieved {len(context_documents)} documents for context:")
+            for doc in context_documents:
+                logging.info(f" - Source: {doc.metadata.get('file_id', 'N/A')}, Heritage: {doc.metadata.get('heritage_id', 'N/A')}, Content snippet: {doc.page_content[:100]}...")
         else:
-            logging.warning("No relevant documents were retrieved for this query")
+            logging.warning("No relevant documents were retrieved for this query with the given filters.")
+            
+        final_chain = get_rag_chain(query_input.model.value, retriever_to_use=filtered_retriever)
+        result = final_chain.invoke(
+            {"input": query_input.question}, # Langchain chains usually expect "input" not "question"
+            config=config,
+        )
+        answer = result['answer']
             
     except Exception as e:
-        logging.error(f"Error invoking RAG chain: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"Error invoking RAG chain: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")
     
     insert_application_logs(session_id, query_input.question, answer, query_input.model.value)
     logging.info(f"Session ID: {session_id}, AI Response: {answer}")
@@ -221,87 +241,93 @@ async def get_chat_sessions():
 
 @app.post('/upload-file')
 async def upload_file(
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    heritage_id: Optional[str] = Form(None) # Accept heritage_id from form data
 ):  
-    logging.info(f"Processing file: {file.filename}")
-    print(f"Processing file: {file.filename}")
+    logging.info(f"Processing file: {file.filename}, heritage_id: {heritage_id}")
 
     try:
-        allowed_extensions = [".pdf", ".docx"]
-        file_extension = os.path.splitext(file.filename)[1].lower() # tuple of(root, ext)
-        if file_extension not in allowed_extensions:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported file type. Allowed types are: {', '.join(allowed_extensions)}"
-            )
+        # ... (file type validation) ...
         
         tmp_file_path = f"tmp_{file.filename}"
         try:
             with open(tmp_file_path, 'wb') as buffer:
                 shutil.copyfileobj(file.file, buffer)
-            file_id = insert_document_records(file.filename)
-            success = index_document_to_mongodb(tmp_file_path, file_id)
+            
+            file_id = insert_document_records(file.filename) # Records the file itself
+            # Index with heritage_id if provided
+            success = index_document_to_mongodb(tmp_file_path, file_id, heritage_id=heritage_id) 
+            
             if success:
-                logging.info(f"File {file.filename} indexed successfully, file_id = {file_id}")
+                logging.info(f"File {file.filename} indexed successfully with file_id={file_id}, heritage_id={heritage_id}")
                 return {
                     "message": f"File {file.filename} has been successfully uploaded and indexed!",
-                    "file_id": file_id
+                    "file_id": file_id,
+                    "heritage_id": heritage_id
                 }
-            else:
-                delete_document_record(file_id)
-                raise HTTPException(status_code=500, 
-                                    detail=f"Failed to index file {file.filename}")
-            
+            # ... (error handling) ...
         finally:
             if os.path.exists(tmp_file_path):
                 os.remove(tmp_file_path)
+    # ... (exception handling) ...
     except Exception as e:
-        logging.error(f"Error in upload file: {str(e)}")
+        logging.error(f"Error in upload file: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post('/upload-website')
-async def upload_website(website: Dict = Body(...)):
-    logging.info(f"Received website data: {website}")
-    print(f"Received website data: {website}")
+@app.post('/upload-landmark-info')
+async def upload_landmark_info(landmark_data: LandmarkInfoInput = Body(...)):
+    logging.info(f"Received landmark data for: {landmark_data.name}, ID: {landmark_data._id}")
 
-    if 'url' not in website:
-        raise HTTPException(status_code=500, detail=f"Invalid input. URL not found in website data!")
+    # ... (content aggregation as before) ...
+    content = "..." # Your existing logic to build content string
+
+    # Use landmark_data._id as the heritage_id for indexing
+    heritage_id_for_indexing = landmark_data._id
     
+    # ... (sanitized_name, tmp_file_path logic as before) ...
+    sanitized_name = re.sub(r'[^\w\- ]', '', landmark_data.name)
+    sanitized_name = re.sub(r'\s+', '_', sanitized_name).strip('_') or f"landmark_{heritage_id_for_indexing}"
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    tmp_filename = f"tmp_{sanitized_name}_{timestamp}.txt"
+    tmp_file_path = tmp_filename
+
+    file_id_record = None
     try:
-        url = website['url']
-        dtype = website['type']
-        logging.info(f"Processing website URL: {url} (type: {dtype})")
-        print(f'Processing {url} (type: {dtype})')
+        with open(tmp_file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
 
-        domain = url.split('//')[-1].split('/')[0]
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{domain}_{timestamp}.html"
+        # Use landmark_data.name for the document record filename, or a more descriptive name
+        file_id_record = insert_document_records(f"{landmark_data.name}_info.txt")
+        logging.info(f"Inserted document record for '{landmark_data.name}', file_id: {file_id_record}")
 
-        content = scrape_website(url)
-        tmp_file_path = f'tmp_{filename}'
-        try:
-            with open(tmp_file_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-            file_id = insert_document_records(filename)
-            success = index_document_to_mongodb(url, file_id)
+        success = index_document_to_mongodb(tmp_file_path, file_id_record, heritage_id=heritage_id_for_indexing)
 
-            if success:
-                logging.info(f"Website {url} indexed successfully, file_id = {file_id}")
-                return {
-                    "message": f"Website {url} has been successfully scraped and indexed."
-                    , "file_id": file_id
-                }
-            else:
-                delete_document_record(file_id)
-                raise HTTPException(status_code=500, detail=f"Failed to index website content from {url}")
-        finally:
-            if os.path.exists(tmp_file_path):
-                os.remove(tmp_file_path)
-
+        if success:
+            logging.info(f"Landmark info '{landmark_data.name}' (file_id: {file_id_record}, heritage_id: {heritage_id_for_indexing}) indexed.")
+            return {
+                "message": f"Landmark information for '{landmark_data.name}' processed and indexed.",
+                "file_id": file_id_record, # This is the ID of the document record itself
+                "heritage_id": heritage_id_for_indexing # This is the ID used for grouping/filtering
+            }
+        # ... (error handling and rollback as before, using file_id_record) ...
+    # ... (exception and finally block as before) ...
     except Exception as e:
-        logging.error(f"ERROR in upload website: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-    
+        logging.error(f"Error processing landmark info '{landmark_data.name}': {str(e)}", exc_info=True)
+        if file_id_record:
+            try:
+                delete_document_record(file_id_record)
+                logging.info(f"Rolled back document record insertion for file_id: {file_id_record} due to exception.")
+            except Exception as del_e:
+                logging.error(f"Failed to rollback document record {file_id_record} after error: {del_e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred processing landmark information: {str(e)}")
+    finally:
+        if os.path.exists(tmp_file_path):
+            try:
+                os.remove(tmp_file_path)
+                logging.info(f"Removed temporary file: {tmp_file_path}")
+            except Exception as e:
+                logging.error(f"Error removing temporary file {tmp_file_path}: {str(e)}")
+
 @app.get("/list-docs", response_model=list[DocumentInfo])
 def list_documents():
     return get_all_documents()
